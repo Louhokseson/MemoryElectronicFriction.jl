@@ -1,0 +1,163 @@
+{
+  "main": {
+    "id": "a0020feb7229d8ba",
+    "type": "split",
+    "children": [
+      {
+        "id": "b862fc7a31bd0bac",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "4141bdd43aab6985",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Development Log.md",
+                "mode": "source",
+                "source": false
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "e023a2fb7a9e3065",
+    "type": "split",
+    "children": [
+      {
+        "id": "74b9028bf3caaeab",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9dfb8ec50e43ae13",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "1869af838941aa95",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              }
+            }
+          },
+          {
+            "id": "c164fd8be2a9d88d",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {}
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "5a3331635a20c45a",
+    "type": "split",
+    "children": [
+      {
+        "id": "9f2a490822dc2fd3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b4117dcd0bb1b557",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Development Log.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "9a42d9aa98f22282",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Development Log.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              }
+            }
+          },
+          {
+            "id": "d2efb53b3656b5bd",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true
+              }
+            }
+          },
+          {
+            "id": "62984731c5614e5f",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Development Log.md"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false
+    }
+  },
+  "active": "4141bdd43aab6985",
+  "lastOpenFiles": [
+    "src/Brandbyge1995/absorbate_dist/BrandbygeAborbate.jl",
+    "scripts/plot/plot_fermidirac.jl",
+    "scripts/plot/plot_brandyge_dos.jl",
+    "scripts/plot",
+    "src/Brandbyge1995/plot/plot_fermidirac.jl",
+    "src/Brandbyge1995/plot/plot_brandyge_dos.jl",
+    "src/Brandbyge1995/absorbate_dist/absorbate_dev.jl",
+    "src/Brandbyge1995/absorbate_dist/BrandbygeAborbateModel.jl",
+    "src/Brandbyge1995/plot",
+    "src/Brandbyge1995/absorbate_dist",
+    "src/Brandbyge1995/Lambda_dev.jl"
+  ]
+}

@@ -1,14 +1,6 @@
-using DrWatson
-@quickactivate "HokseonReproduce"
 
 include(srcdir("distribution.jl"))
-
-"""
-    BrandbygeAborbateModel is given at https://doi.org/10.1103/PhysRevB.52.6042 by Brandbyge et al. 1995
-
-    The DOS of the impurity follows the equation (22 a,b)
-"""
-struct BrandbygeAborbateModel
+struct BrandbygeAborbate <: BrandbygeModel
     Δ₀::AbstractFloat
     β::AbstractFloat
     ε∞::AbstractFloat
@@ -16,18 +8,18 @@ struct BrandbygeAborbateModel
     α::AbstractFloat
 end
 
-function BrandbygeAborbateModel(;
+function BrandbygeAborbate(;
         Δ₀= 0.2,
         β= 1.0,
         ε∞= 5.0,
         C= 3.0,
         α = 0.5,
     )
-    return BrandbygeAborbateModel(Δ₀, β, ε∞, C, α)
+    return BrandbygeAborbate(Δ₀, β, ε∞, C, α)
 end
 
 
-function DOS(r::Real ,Δϵ::Real, m::BrandbygeAborbateModel)
+function HokseonReproduce.DOS(r::Real ,Δϵ::Real, m::BrandbygeAborbate)
     """
     DOS of the impurity follows the equation (22 a,b)
 

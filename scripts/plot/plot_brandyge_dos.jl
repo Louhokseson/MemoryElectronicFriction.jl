@@ -1,9 +1,8 @@
 using DrWatson
 @quickactivate "HokseonReproduce"
 
-include(projectdir("scripts", "Brandbyge1995", "absorbate_dist", "BrandbygeAborbateModel.jl"))
+include(srcdir("HokseonReproduce.jl")); using .HokseonReproduce
 
-using CairoMakie
 using CairoMakie
 using JamesPlots
 using ColorSchemes
@@ -13,8 +12,8 @@ colormap = JamesPlots.NICECOLORS;
 
 
 function plot_brandbyge_dos(r = 1.0, Δϵ = 1.0)
-    m = BrandbygeAborbateModel()
-    dos_r, dos = DOS(r, Δϵ, m)
+    m = BrandbygeModels.BrandbygeAborbate()
+    dos_r, dos = HokseonReproduce.DOS(r, Δϵ, m)
     ## Plotting set up
     fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
     ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "DOS",limits=(nothing, nothing, nothing, nothing))
