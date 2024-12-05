@@ -1,5 +1,5 @@
 function Base.show(io::IO, m::T) where T
-    if T <: BrandbygeAborbateModel
+    if T <: BrandbygeAborbate
         println(io, "$T(")
         for field in fieldnames(T)
             println(io, "    $field = $(getfield(m, field)),")

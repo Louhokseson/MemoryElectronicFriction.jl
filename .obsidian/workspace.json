@@ -148,16 +148,16 @@
   },
   "active": "4141bdd43aab6985",
   "lastOpenFiles": [
-    "src/Brandbyge1995/absorbate_dist/BrandbygeAborbate.jl",
-    "scripts/plot/plot_fermidirac.jl",
-    "scripts/plot/plot_brandyge_dos.jl",
-    "scripts/plot",
-    "src/Brandbyge1995/plot/plot_fermidirac.jl",
-    "src/Brandbyge1995/plot/plot_brandyge_dos.jl",
-    "src/Brandbyge1995/absorbate_dist/absorbate_dev.jl",
-    "src/Brandbyge1995/absorbate_dist/BrandbygeAborbateModel.jl",
-    "src/Brandbyge1995/plot",
-    "src/Brandbyge1995/absorbate_dist",
-    "src/Brandbyge1995/Lambda_dev.jl"
+    "src/DistributionsTools/lorentzian.jl",
+    "src/DistributionsTools/fermidirac.jl",
+    "src/DistributionsTools/Distributions.jl",
+    "src/DistributionsTools",
+    "src/Distributions/fermidirac.jl",
+    "src/Distributions/Distributions.jl",
+    "src/Distributions/lorentzian.jl",
+    "src/Distributions/fermicdirac.jl",
+    "src/Distributions/distribution.jl",
+    "src/Distributions",
+    "src/maths/fermicdirac.jl"
   ]
 }

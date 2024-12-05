@@ -6,9 +6,11 @@ Models and functions defined with this module are based on the work of Brandbyge
 
 module BrandbygeModels
 
-# Importing the parent module
-using ..HokseonReproduce: HokseonReproduce 
+# Linking the current module to the parent module 
+# (parent module has exported its older silbling module-Distributions)
+using ..HokseonReproduce: HokseonReproduce, Distributions 
 # we use the parent module's abstract type Model and the broadcastable function
+
 
 # Importing the external packages
 using Unitful: @u_str

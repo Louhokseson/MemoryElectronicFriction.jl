@@ -1,7 +1,11 @@
 using DrWatson
 @quickactivate "HokseonReproduce"
 
-include(srcdir("HokseonReproduce.jl")); using .HokseonReproduce
+# making sure that HokseonReproduce module is loaded once
+if !isdefined(Main, :HokseonReproduce)
+    include(srcdir("HokseonReproduce.jl"))
+    using .HokseonReproduce
+end
 
 using CairoMakie
 using JamesPlots
@@ -16,7 +20,7 @@ function plot_brandbyge_dos(r = 1.0, Δϵ = 1.0)
     dos_r, dos = HokseonReproduce.DOS(r, Δϵ, m)
     ## Plotting set up
     fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
-    ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "DOS",limits=(nothing, nothing, nothing, nothing))
+    ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "Density of States",limits=(nothing, nothing, nothing, nothing))
 
 
     lines!(ax, dos_r, dos; color = colormap[1], linewidth = 2, label = "Brandbyge \n impurity at $r")
@@ -25,4 +29,4 @@ function plot_brandbyge_dos(r = 1.0, Δϵ = 1.0)
     return fig
 end
 
-plot_brandbyge_dos(1, 2.0)
+plot_brandbyge_dos(10, 2.0)

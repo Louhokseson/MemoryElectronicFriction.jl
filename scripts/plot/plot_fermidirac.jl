@@ -1,8 +1,13 @@
 using DrWatson
 @quickactivate "HokseonReproduce"
-include(srcdir("distribution.jl"))
 
-using CairoMakie
+# making sure that HokseonReproduce module is loaded only once
+if !isdefined(Main, :HokseonReproduce)
+    include(srcdir("HokseonReproduce.jl"))
+    using .HokseonReproduce
+end
+
+# Plotting packages
 using CairoMakie
 using JamesPlots
 using ColorSchemes
@@ -12,12 +17,15 @@ colormap = JamesPlots.NICECOLORS;
 
 function plot_fermidirac(energies=collect(range(-30,30,100)), fermi_level = 0.0,temperature = 0.000)
     
-    fermi = FermiDirac.(energies, fermi_level, temperature)
+    # Fermi-Dirac distribution
+    fermidirac = Distributions.FermiDirac(fermi_level, temperature)
+
+    fermi_pdf = HokseonReproduce.PDF.(energies,fermidirac)
     ## Plotting set up
     fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
     ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "Probability",limits=(nothing, nothing, nothing, nothing))
 
-    lines!(ax, energies, fermi; color = colorscheme[2], linewidth = 2, label = "Fermi distribution\n T = $(temperature) K")
+    lines!(ax, energies, fermi_pdf; color = colorscheme[2], linewidth = 2, label = "Fermi distribution\n T = $(temperature) K")
 
     Legend(fig[1,1], ax, tellwidth=false, tellheight=false, valign=:bottom, halign=:left, margin=(5, 5, 5, 5), orientation=:vertical)
 
