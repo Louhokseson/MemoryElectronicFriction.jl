@@ -21,6 +21,8 @@ Base.broadcastable(friction::Friction) = Ref(friction)
 abstract type Distribution end
 Base.broadcastable(dist::Distribution) = Ref(dist)
 
+abstract type Bath end
+Base.broadcastable(bath::Bath) = Ref(bath)
 
 # Define the top-level DOS function
 function DOS(r::Real, Δϵ::Real, m::Model)
@@ -37,8 +39,12 @@ end
 include("DistributionsTools/Distributions.jl")
 @reexport using .Distributions 
 
+include("Baths/Baths.jl")
+@reexport using .Baths
+
 include("Brandbyge1995/BrandbygeModels.jl")
 @reexport using .BrandbygeModels
+
 
 
 # @reexport makes sure that you could call Distributions.function() directly

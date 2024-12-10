@@ -16,7 +16,7 @@ colormap = JamesPlots.NICECOLORS;
 
 
 function plot_brandbyge_dos(r = 1.0, Δϵ = 1.0)
-    m = BrandbygeModels.BrandbygeAborbate()
+    m = BrandbygeModels.BrandbygeAbsorbate()
     dos_r, dos = HokseonReproduce.DOS(r, Δϵ, m)
     ## Plotting set up
     fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))

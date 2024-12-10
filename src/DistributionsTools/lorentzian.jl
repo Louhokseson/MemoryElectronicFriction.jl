@@ -1,4 +1,4 @@
-Base.@kwdef struct Lorentzian <: HokseonReproduce.Distribution
+Base.@kwdef struct Lorentzian <: Distribution
     ω0::AbstractFloat = 0.0
     Γ::AbstractFloat = 1.0
 end

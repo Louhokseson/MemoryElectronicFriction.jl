@@ -4,9 +4,11 @@ authors = ["Hokseon"]
 [deps]
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
+FastGaussQuadrature = "442a2c76-b920-505d-bb47-c5924d526838"
 JamesPlots = "65b38e5c-fa97-498f-814c-2dc0ae7de8a9"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+Pluto = "c3e4b0f8-55cb-11ea-2926-15256bba5781"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"

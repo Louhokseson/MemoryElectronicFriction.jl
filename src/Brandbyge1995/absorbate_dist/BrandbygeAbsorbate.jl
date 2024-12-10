@@ -1,5 +1,5 @@
 
-Base.@kwdef struct BrandbygeAborbate <: BrandbygeModel
+Base.@kwdef struct BrandbygeAbsorbate <: BrandbygeModel
     Δ₀::AbstractFloat = 0.2
     β::AbstractFloat = 1.0
     ε∞::AbstractFloat = 5.0
@@ -8,7 +8,7 @@ Base.@kwdef struct BrandbygeAborbate <: BrandbygeModel
 end
 
 
-function HokseonReproduce.DOS(r::Real ,Δϵ::Real, m::BrandbygeAborbate)
+function HokseonReproduce.DOS(r::Real ,Δϵ::Real, m::BrandbygeAbsorbate)
     """
     DOS of the impurity follows the equation (22 a,b)
 

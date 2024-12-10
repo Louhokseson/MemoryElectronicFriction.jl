@@ -1,6 +1,6 @@
 module Distributions
 
-using ..HokseonReproduce: HokseonReproduce
+using ..HokseonReproduce: HokseonReproduce, HokseonReproduce.Distribution
 using Requires: Requires
 using Parameters: Parameters
 

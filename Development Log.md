@@ -10,3 +10,14 @@
 - [x] Create the type of model for HokseonReproduce
 - [x] Call the DOS function by HokseonReproduce module
 - (Top level function defined in HokseonReproduce.jl module)
+
+
+### 2024/12/05
+- [x] Build the module Distributions Lorentzian and FermiDirac
+- [x] Coordinate module Distributions with Parent module HokseonReproduce
+
+### 2024/12/09
+- [x] Implemented the bath discretization from NQCModels.jl
+- [ ] Try to do the subtype graph for the HokseonReproduce. 人都癫 I hate this crap.
+- [ ] 
+

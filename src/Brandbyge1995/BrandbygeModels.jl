@@ -24,8 +24,8 @@ abstract type BrandbygeModel <: HokseonReproduce.Model end
 
 absorbatepath = "absorbate_dist/"
 
-include(absorbatepath * "BrandbygeAborbate.jl")
-export BrandbygeAborbate
+include(absorbatepath * "BrandbygeAbsorbate.jl")
+export BrandbygeAbsorbate
 
 
 end

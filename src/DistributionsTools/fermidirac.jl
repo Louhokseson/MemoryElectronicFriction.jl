@@ -1,4 +1,4 @@
-Base.@kwdef struct FermiDirac <: HokseonReproduce.Distribution
+Base.@kwdef struct FermiDirac <: Distribution
     ϵf::AbstractFloat = 0.0
     T::AbstractFloat = 1.0
 end
