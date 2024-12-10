@@ -148,16 +148,16 @@
   },
   "active": "4141bdd43aab6985",
   "lastOpenFiles": [
-    "src/Brandbyge1995/absorbate_dist/BrandbygeAbsorbate.jl",
-    "dev/dev_parameters.jl",
-    "dev/FamilyTree/submodule.jl",
-    "dev/FamilyTree/TypeExploration_Pluto backup 1.jl",
-    "dev/FamilyTree/TypeExploration_Pluto.jl",
-    "dev/FamilyTree",
-    "dev/TypeExploration_Pluto backup 1.jl",
-    "src/DistributionsTools/lorentzian.jl",
-    "src/DistributionsTools/fermidirac.jl",
-    "src/DistributionsTools/Distributions.jl",
-    "src/DistributionsTools"
+    "dev/dev_Gamma.jl",
+    "dev/principal_value_integration.jl",
+    "src/DistributionTools/gaussian.jl",
+    "scripts/plot/plot_deltagauss.jl",
+    "scripts/plot/plot_fermidirac copy.jl",
+    "src/DistributionTools/delta_gaussian.jl",
+    "src/DistributionTools/DistributionTools.jl",
+    "src/DistributionTools/lorentzian.jl",
+    "src/DistributionTools/fermidirac.jl",
+    "src/DistributionTools",
+    "src/DistributionsTools/DistributionTools.jl"
   ]
 }

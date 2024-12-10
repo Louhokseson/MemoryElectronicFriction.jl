@@ -1,3 +1,11 @@
+
+"""
+Lorentzian distribution
+
+ω0: center frequency
+Γ: half-width at half-maximum
+
+"""
 Base.@kwdef struct Lorentzian <: Distribution
     ω0::AbstractFloat = 0.0
     Γ::AbstractFloat = 1.0

@@ -8,27 +8,20 @@ Base.@kwdef struct BrandbygeAbsorbate <: BrandbygeModel
 end
 
 
-function HokseonReproduce.DOS(r::Real ,Δϵ::Real, m::BrandbygeAbsorbate)
+function HokseonReproduce.DOS(r::Real, m::BrandbygeAbsorbate)
     """
     DOS of the impurity follows the equation (22 a,b)
 
     we assume the absorbate is a Cauchy/Lorentz distribution
 
     r: distance from the impurity to the reservoir
-
-    Δϵ: energy range for plotting the absorbate DOS
     
     m: BrandbygeAborbateModel
     """
     Δ = m.Δ₀ * exp(-m.β * r)
     ϵₐ = m.ε∞ - m.C * exp(-m.α * r)
 
-    lorentzian = Distributions.Lorentzian(ϵₐ, Δ)
-
-    lorentzian_pdf(ω) = HokseonReproduce.PDF.(ω, lorentzian)
-
-    dos_r = collect(range(ϵₐ - Δϵ, ϵₐ + Δϵ, length = 100))
-
-    dos = lorentzian_pdf.(dos_r)
-    return dos_r, dos
+    lorentzian = DistributionTools.Lorentzian(ϵₐ, Δ)
+    
+    return lorentzian
 end

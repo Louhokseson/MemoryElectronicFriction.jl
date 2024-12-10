@@ -18,7 +18,7 @@ colormap = JamesPlots.NICECOLORS;
 function plot_fermidirac(energies=collect(range(-30,30,100)), fermi_level = 0.0,temperature = 0.000)
     
     # Fermi-Dirac distribution
-    fermidirac = Distributions.FermiDirac(fermi_level, temperature)
+    fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
     fermi_pdf = HokseonReproduce.PDF.(energies,fermidirac)
     ## Plotting set up

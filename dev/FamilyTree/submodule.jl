@@ -1,3 +1,10 @@
+
+"""
+	get_submodule(m::Module)
+	
+	Return all the submodules of a given module. children module of m and 
+	even children's offsprings as well
+"""
 function get_submodule(m::Module)
     module_names=names(m)
     submodule=[]
@@ -9,6 +16,13 @@ function get_submodule(m::Module)
 	    end
 	return submodule
 end
+
+"""
+	get_childrenmodule(m::Module)
+	
+	Return all the children module of a given module. 
+	Only the daughter and son of module m
+"""
 
 function get_childrenmodule(m::Module)
 	submodule = get_submodule(m)
@@ -22,6 +36,13 @@ function get_childrenmodule(m::Module)
 	# rempve grandchildren from submodule
 	return setdiff(submodule, grandchildrenmodule)
 end
+
+"""
+
+	get_struct(m::Module)
+	
+	Return all the struct names of a given module.
+"""
 
 function get_struct(m::Module)
 	struct_names = []

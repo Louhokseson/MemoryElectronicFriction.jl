@@ -8,7 +8,7 @@ module BrandbygeModels
 
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
-using ..HokseonReproduce: HokseonReproduce, Distributions 
+using ..HokseonReproduce: HokseonReproduce, DistributionTools 
 # we use the parent module's abstract type Model and the broadcastable function
 
 

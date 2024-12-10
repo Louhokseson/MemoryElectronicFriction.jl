@@ -1,4 +1,4 @@
-module Distributions
+module DistributionTools
 
 using ..HokseonReproduce: HokseonReproduce, HokseonReproduce.Distribution
 using Requires: Requires
@@ -13,6 +13,9 @@ export Lorentzian
 
 include("fermidirac.jl")
 export FermiDirac
+
+include("gaussian.jl")
+export Gaussian
 
 
 end

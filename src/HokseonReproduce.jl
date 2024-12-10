@@ -36,8 +36,8 @@ end
 
 # Importing the submodules [loads the independent modules first]
 # BrandbygeModels depends on Distributions
-include("DistributionsTools/Distributions.jl")
-@reexport using .Distributions 
+include("DistributionTools/DistributionTools.jl")
+@reexport using .DistributionTools 
 
 include("Baths/Baths.jl")
 @reexport using .Baths
