@@ -16,7 +16,7 @@ colormap = JamesPlots.NICECOLORS;
 
 
 function plot_brandbyge_dos(r = 1.0)
-    m = BrandbygeModels.BrandbygeAbsorbate()
+    m = BrandbygeModels.BrandbygeAdsorbate()
     lorentzian = HokseonReproduce.DOS(r, m)
 
     # evaluate the DOS
