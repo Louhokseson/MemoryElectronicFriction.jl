@@ -27,15 +27,18 @@ end
 include("dev_parameters.jl")
 @unpack discretization, centre, width, nstates = bath_params
 
-bandmin = centre - width/2
-bandmax = centre + width/2
+function build_WideBandBath!(discretization, centre, width, nstates)
 
-bath = eval(discretization)(nstates, bandmin, bandmax)
+    global bath, ρbath
+    bandmin = centre - width/2
+    bandmax = centre + width/2
 
-states = bath.bathstates
+    bath = eval(discretization)(nstates, bandmin, bandmax)
 
-# The density of states of the bath under WideBand approximation
-ρbath = nstates/width
+    # The density of states of the bath under WideBand approximation
+    ρbath = nstates/width
+
+end
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -50,16 +53,20 @@ states = bath.bathstates
 #            Absorbate's construction
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
+function build_BrandbygeAdsorbate!(distance)
 
-distance = 1.0
+    global Δ, eminiusH, lorentzian
 
-am = BrandbygeModels.BrandbygeAbsorbate()
+    am = BrandbygeModels.BrandbygeAdsorbate()
 
-lorentzian = HokseonReproduce.DOS(distance, am)
+    lorentzian = HokseonReproduce.DOS(distance, am)
 
-Δ = lorentzian.Γ
+    Δ = lorentzian.Γ
 
-eminiusH = lorentzian.ω0
+    eminiusH = lorentzian.ω0
+
+end
+
 
 
 #XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -85,7 +92,12 @@ eminiusH = lorentzian.ω0
 """
 
 
-Raa(ω) =  2 * π * HokseonReproduce.PDF(ω, lorentzian)
+function Raa(ω::Float64, distance::Float64)
+
+    build_BrandbygeAdsorbate!(distance)
+
+    return 2 * π * HokseonReproduce.PDF(ω, lorentzian)
+end 
 
 
 """
@@ -104,7 +116,14 @@ Raa(ω) =  2 * π * HokseonReproduce.PDF(ω, lorentzian)
     second: the second term in the bracket in Eq. A48c
 """
 
-function Rak(ω::Float64,k::Int64)
+function Rak(ω::Float64,k::Int64, distance::Float64)
+
+    build_WideBandBath!(discretization, centre, width, nstates)
+
+    states = bath.bathstates
+
+    build_BrandbygeAdsorbate!(distance)
+
     if ω == states[k]
         error("Input frequency ω is equal to the k-th state energy.
               \n This generates an singularity in the expression.")
@@ -113,16 +132,20 @@ function Rak(ω::Float64,k::Int64)
     # build Dirac delta from a Gaussian
     DeltaGaussian = DistributionTools.Gaussian(states[k], 1e-3)
 
-    first = Raa(ω) * (1/(ω - states[k]))
+    first = Raa(ω, distance) * (1/(ω - states[k]))
 
-    second = π * Raa(ω) * HokseonReproduce.PDF(ω, DeltaGaussian) * (ω-eminiusH)/Δ
+    second = π * Raa(ω, distance) * HokseonReproduce.PDF(ω, DeltaGaussian) * (ω-eminiusH)/Δ
     
     Tk = sqrt(Δ/(2*π*ρbath))
 
     return Tk * (first + second)
 end
 
-Rak(10.0, 50)
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+#            coupling spectral funcions end
+#XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
 
 
 
