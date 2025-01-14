@@ -16,7 +16,7 @@ function HokseonReproduce.DOS(r::Real, m::BrandbygeAdsorbate)
 
     r: distance from the impurity to the reservoir
     
-    m: BrandbygeAborbateModel
+    m: BrandbygeAdorbateModel
     """
     Δ = m.Δ₀ * exp(-m.β * r)
     ϵₐ = m.ε∞ - m.C * exp(-m.α * r)

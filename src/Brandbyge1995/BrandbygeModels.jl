@@ -22,9 +22,9 @@ using DrWatson
 
 abstract type BrandbygeModel <: HokseonReproduce.Model end
 
-absorbatepath = "absorbate_dist/"
+adsorbatepath = "adsorbate_dist/"
 
-include(absorbatepath * "BrandbygeAdsorbate.jl")
+include(adsorbatepath * "BrandbygeAdsorbate.jl")
 export BrandbygeAdsorbate
 
 
