@@ -9,11 +9,11 @@ end
 
 # Plotting packages
 using CairoMakie
-using JamesPlots
+using HokseonPlots
 using ColorSchemes
 using Colors
 colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
-colormap = JamesPlots.NICECOLORS;
+colormap = HokseonPlots.NICECOLORS;
 
 function plot_deltagauss(energies=collect(range(-1,1,1000)), x = 0.0,σ = 1e-3)
     
@@ -22,7 +22,7 @@ function plot_deltagauss(energies=collect(range(-1,1,1000)), x = 0.0,σ = 1e-3)
 
     delta_pdf = HokseonReproduce.PDF.(energies,deltagauss)
     ## Plotting set up
-    fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
+    fig = Figure(size=(HokseonPlots.RESOLUTION[1]*2, 3*HokseonPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
     ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "Probability Density",limits=(nothing, nothing, nothing, nothing))
 
     lines!(ax, energies, delta_pdf; color = colorscheme[2], linewidth = 2, label = "delta Gaussian\n σ = $(σ) K")

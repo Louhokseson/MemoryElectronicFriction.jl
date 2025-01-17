@@ -8,11 +8,11 @@ if !isdefined(Main, :HokseonReproduce)
 end
 
 using CairoMakie
-using JamesPlots
+using HokseonPlots
 using ColorSchemes
 using Colors
 colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
-colormap = JamesPlots.NICECOLORS;
+colormap = HokseonPlots.NICECOLORS;
 
 
 function plot_brandbyge_dos(r = 1.0)
@@ -24,7 +24,7 @@ function plot_brandbyge_dos(r = 1.0)
     dos = HokseonReproduce.PDF.(ω, lorentzian)
 
     ## Plotting set up
-    fig = Figure(size=(JamesPlots.RESOLUTION[1]*2, 3*JamesPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
+    fig = Figure(size=(HokseonPlots.RESOLUTION[1]*2, 3*HokseonPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
     ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "Density of States",limits=(nothing, nothing, nothing, nothing))
 
 
