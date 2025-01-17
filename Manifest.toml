@@ -2,7 +2,7 @@
 
 julia_version = "1.10.3"
 manifest_format = "2.0"
-project_hash = "4e272c7d3764ba0c62f60c42df04a7a17fe8618d"
+project_hash = "adeb8e819f3d5045fc0365685d2b5254afbb57de"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -525,6 +525,12 @@ git-tree-sha1 = "401e4f3f30f43af2c8478fc008da50096ea5240f"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "8.3.1+0"
 
+[[deps.HokseonPlots]]
+deps = ["CairoMakie", "ColorSchemes", "Colors"]
+git-tree-sha1 = "4a633bbadeb24778eb0625cc30ea01ef718586ac"
+uuid = "dbc986b1-56c8-4426-90b1-59dbc674cedc"
+version = "1.0.1"
+
 [[deps.HypergeometricFunctions]]
 deps = ["LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
 git-tree-sha1 = "b1c2585431c382e3fe5805874bda6aea90a95de9"
@@ -684,12 +690,6 @@ deps = ["Dates", "Mmap", "Parsers", "Unicode"]
 git-tree-sha1 = "31e996f0a15c7b280ba9f76636b3ff9e2ae58c9a"
 uuid = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 version = "0.21.4"
-
-[[deps.JamesPlots]]
-deps = ["CairoMakie", "ColorSchemes", "Colors"]
-path = "/Users/u5575142/Desktop/JamesPlots.jl"
-uuid = "65b38e5c-fa97-498f-814c-2dc0ae7de8a9"
-version = "0.1.8"
 
 [[deps.JpegTurbo]]
 deps = ["CEnum", "FileIO", "ImageCore", "JpegTurbo_jll", "TOML"]

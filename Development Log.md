@@ -57,3 +57,9 @@ G_a^{ret} G_k^{ret(0)} = G_k^{ret}G^{ret(0)}_a ?
 $$
 - [x] $R_ak$ fully understood!!!!!!!!!! 
 
+
+### 2025/1/14
+- [ ] Review the structure(Julia hierarchy module) of the HokseonReproduce
+- [ ] Make a schematic about coding the R_{kk'}
+- [x] Make [HokseonPlots.jl](https://github.com/Louhokseson/HokseonPlots.jl) for my own usage
+- [ ] 
