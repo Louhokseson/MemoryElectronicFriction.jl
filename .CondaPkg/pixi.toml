@@ -1,6 +1,7 @@
 [dependencies]
 openssl = ">=3, <3.6"
-ase = ">=3.23,<3.24"
+ase = "*"
+numpy = "<2"
 
     [dependencies.python]
     channel = "conda-forge"

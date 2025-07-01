@@ -4,12 +4,6 @@ julia_version = "1.11.5"
 manifest_format = "2.0"
 project_hash = "0c8adaed797a1fe81df9cb3260244718bffcb535"
 
-[[deps.ASEconvert]]
-deps = ["AtomsBase", "AtomsCalculators", "CondaPkg", "PeriodicTable", "PythonCall", "Unitful", "UnitfulAtomic"]
-git-tree-sha1 = "7c0886a87b7b626f2fdf0697c30ad18deac469ca"
-uuid = "3da9722f-58c2-4165-81be-b4d7253e8fd2"
-version = "0.1.8"
-
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
 git-tree-sha1 = "d92ad398961a3ed262d8bf04a1a2b8340f915fef"
@@ -73,12 +67,6 @@ version = "0.5.1"
 
     [deps.AtomsBase.weakdeps]
     AtomsView = "ee286e10-dd2d-4ff2-afcb-0a3cd50c8041"
-
-[[deps.AtomsCalculators]]
-deps = ["AtomsBase", "Compat", "StaticArrays", "Test", "Unitful"]
-git-tree-sha1 = "99c477979252acdb189f3e4161970e42634e426a"
-uuid = "a3e0e189-c65a-42c1-833c-339540406eb1"
-version = "0.2.3"
 
 [[deps.Automa]]
 deps = ["PrecompileTools", "SIMD", "TranscodingStreams"]
@@ -1056,10 +1044,10 @@ uuid = "78c76ebc-5665-4934-b512-82d81b5cbfb7"
 version = "0.2.0"
 
 [[deps.NQCModels]]
-deps = ["ASEconvert", "AtomsBase", "FastGaussQuadrature", "ForwardDiff", "LinearAlgebra", "NQCBase", "Parameters", "Random", "RecipesBase", "Reexport", "Requires", "StaticArrays", "Unitful", "UnitfulAtomic"]
-path = "/Users/u5575142/Desktop/NQCModels.jl"
+deps = ["AtomsBase", "FastGaussQuadrature", "ForwardDiff", "LinearAlgebra", "NQCBase", "Parameters", "PythonCall", "Random", "RecipesBase", "Reexport", "Requires", "StaticArrays", "Statistics", "Unitful", "UnitfulAtomic"]
+git-tree-sha1 = "5a1c4b90200f1b3a353c1a75469b2b62fb95c020"
 uuid = "c814dc9f-a51f-4eaf-877f-82eda4edad48"
-version = "0.8.20"
+version = "0.9.1"
 
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
