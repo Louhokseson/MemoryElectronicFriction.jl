@@ -2,7 +2,7 @@ name: CI
 on:
   push:
     branches:
-      - fix-ci-workflow
+      - main
     tags: '*'
   pull_request:
 concurrency:
