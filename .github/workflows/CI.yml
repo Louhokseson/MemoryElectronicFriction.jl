@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1'
+          - '1' # This will use the latest 1.x version, e.g., 1.10.x or 1.11.x
         os:
           - ubuntu-latest
         arch:
@@ -30,10 +30,15 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
 
-      # --- CORRECTED STEP: Add your HokseonRegistry with shell: bash ---
+      # --- Add your HokseonRegistry ---
       - name: Add HokseonRegistry
         run: julia -e 'using Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/Louhokseson/HokseonRegistry.git"))'
-        shell: bash # Explicitly setting bash as the shell
+        shell: bash
+
+      # --- ADD THIS STEP: Add NQCRegistry because NQCModels (and thus NQCBase) needs it ---
+      - name: Add NQCRegistry
+        run: julia -e 'using Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/NQCD/NQCRegistry.git"))'
+        shell: bash
 
       - uses: julia-actions/cache@v1
       - uses: julia-actions/julia-buildpkg@v1
