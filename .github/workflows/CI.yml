@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1' # This will use the latest 1.x version, e.g., 1.10.x or 1.11.x
+          - '1'
         os:
           - ubuntu-latest
         arch:
@@ -30,18 +30,13 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
 
-      # --- NEW STEP: Add your private Julia registry ---
+      # --- CORRECTED STEP: Add your HokseonRegistry with shell: bash ---
       - name: Add HokseonRegistry
-        run: |
-          julia -e '
-            using Pkg
-            Pkg.add(url="https://github.com/Louhokseson/HokseonRegistry.git")
-          '
-        # Since your registry is public, this `Pkg.add` with the URL should suffice.
-        # No authentication (like GITHUB_TOKEN) is needed for public repos.
+        run: julia -e 'using Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/Louhokseson/HokseonRegistry.git"))'
+        shell: bash # Explicitly setting bash as the shell
 
-      - uses: julia-actions/cache@v1 # This caches your dependencies
-      - uses: julia-actions/julia-buildpkg@v1 # This runs Pkg.instantiate() and Pkg.build()
+      - uses: julia-actions/cache@v1
+      - uses: julia-actions/julia-buildpkg@v1
 
       - name: Run tests
         run: >
