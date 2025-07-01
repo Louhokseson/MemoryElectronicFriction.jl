@@ -1,17 +1,6 @@
-using DrWatson, Test
-@quickactivate "HokseonReproduce"
+using HokseonReproduce
+using Test
 
-# Here you include files using `srcdir`
-# include(srcdir("file.jl"))
+include("memory/testRs.jl")
 
-# Run test suite
-println("Starting tests")
-ti = time()
-
-@testset "HokseonReproduce tests" begin
-    @test 1 == 1
-end
-
-ti = time() - ti
-println("\nTest took total time of:")
-println(round(ti/60, digits = 3), " minutes")
+include("model/testBrandbygeAbsorbate.jl")

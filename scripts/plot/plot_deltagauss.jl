@@ -15,7 +15,7 @@ using Colors
 colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
 colormap = HokseonPlots.NICECOLORS;
 
-function plot_deltagauss(energies=collect(range(-1,1,1000)), x = 0.0,σ = 1e-3)
+function plot_deltagauss(energies=collect(range(-1,1,1000)), x = 0.0,σ = 1e-4)
     
     # Fermi-Dirac distribution
     deltagauss = DistributionTools.Gaussian(x, σ)

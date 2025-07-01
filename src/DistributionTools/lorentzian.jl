@@ -1,6 +1,6 @@
 
 """
-Lorentzian distribution
+Lorentzian distribution as known as Cauchy distribution.
 
 ω0: center frequency
 Γ: half-width at half-maximum

@@ -59,7 +59,17 @@ $$
 
 
 ### 2025/1/14
-- [ ] Review the structure(Julia hierarchy module) of the HokseonReproduce
+- [x] Review the structure(Julia hierarchy module) of the HokseonReproduce
 - [ ] Make a schematic about coding the R_{kk'}
 - [x] Make [HokseonPlots.jl](https://github.com/Louhokseson/HokseonPlots.jl) for my own usage
-- [ ] 
+
+
+### 2025/6/29
+- [x] Review the structure of HokseonReproduce
+
+
+### 2025/7/1
+- [x] module `AndersonImpurityFrictions` built with submodule `ImaginaryGreens` where has `Raa` and `Rak` (see (A48) and (A47) in [brandbyge paper](https://doi.org/10.1103/PhysRevB.52.6042))
+- [x] Renamed module `BrandbygeModel` into `AndersonImpurityModels`. Updated the type of `BrandbygeAdsorbate <: AndersonImpurityModel`
+- [x] Set up CI tests for `BrandbygeAdsorbate`, `Raa` and `Rak`.
+- [x] Included dev version of `NQCModels` into `Project.toml` for `HokseonReproduce`

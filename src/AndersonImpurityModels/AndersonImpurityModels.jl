@@ -1,10 +1,10 @@
 """
-    BrandbygeModels
+    AndersonImpurityModels
 
-Models and functions defined with this module are based on the work of Brandbyge et al. (1995) [1]
+Andersom Impurity type of models based on the second quantization formalism.
 """
 
-module BrandbygeModels
+module AndersonImpurityModels
 
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
@@ -20,12 +20,12 @@ using LinearAlgebra: LinearAlgebra, Hermitian
 using StaticArrays: SMatrix, SVector
 using DrWatson
 
-abstract type BrandbygeModel <: HokseonReproduce.Model end
+abstract type AndersonImpurityModel <: HokseonReproduce.Model end
 
-adsorbatepath = "adsorbate_dist/"
+adsorbatepath = "adsorbates/"
 
 include(adsorbatepath * "BrandbygeAdsorbate.jl")
-export BrandbygeAdsorbate
+export BrandbygeAdsorbate, AndersonImpurityModel
 
 
 end

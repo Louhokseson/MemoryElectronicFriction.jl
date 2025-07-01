@@ -1,5 +1,5 @@
 
-Base.@kwdef struct BrandbygeAdsorbate <: BrandbygeModel
+Base.@kwdef struct BrandbygeAdsorbate <: AndersonImpurityModel
     Δ₀::AbstractFloat = 0.2
     β::AbstractFloat = 1.0
     ε∞::AbstractFloat = 5.0

@@ -16,7 +16,7 @@ colormap = HokseonPlots.NICECOLORS;
 
 
 function plot_brandbyge_dos(r = 1.0)
-    m = BrandbygeModels.BrandbygeAdsorbate()
+    m = AndersonImpurityModels.BrandbygeAdsorbate()
     lorentzian = HokseonReproduce.DOS(r, m)
 
     # evaluate the DOS

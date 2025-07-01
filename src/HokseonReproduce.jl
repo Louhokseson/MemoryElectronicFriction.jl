@@ -42,9 +42,12 @@ include("DistributionTools/DistributionTools.jl")
 include("Baths/Baths.jl")
 @reexport using .Baths
 
-include("Brandbyge1995/BrandbygeModels.jl")
-@reexport using .BrandbygeModels
+include("AndersonImpurityModels/AndersonImpurityModels.jl")
+@reexport using .AndersonImpurityModels
 
+
+include("AndersonImpurityFrictions/AndersonImpurityFrictions.jl")
+@reexport using .AndersonImpurityFrictions
 
 
 # @reexport makes sure that you could call Distributions.function() directly
