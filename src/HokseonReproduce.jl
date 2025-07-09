@@ -33,6 +33,18 @@ function PDF(ω::Real, d::Distribution)
     error("PDF function not implemented for this distribution type")
 end
 
+function dΔ_dr(r::Real, d::Distribution)
+    error("Δ_dr function not implemented for this distribution type")
+end
+
+function Aak(bath::Bath, adsorbate_m::Model, position::Real)
+    error("Aak function not implemented for this bath and adsorbate model")
+end
+
+function A′ak(bath::Bath, adsorbate_m::Model, position::Real)
+    error("A′ak function not implemented for this bath and adsorbate model")
+end
+
 
 # Importing the submodules [loads the independent modules first]
 # BrandbygeModels depends on Distributions

@@ -9,6 +9,8 @@ module AndersonImpurityFrictions
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
 using ..HokseonReproduce: HokseonReproduce, DistributionTools , AndersonImpurityModels
+using ..AndersonImpurityModels: AndersonImpurityModel
+using LinearAlgebra: dot
 # we use the parent module's abstract type Model and the broadcastable function
 
 
@@ -24,10 +26,17 @@ abstract type AndersonImpurityFriction <: HokseonReproduce.Friction end
 
 abstract type AndersonImpurityMemoryFriction <: AndersonImpurityFriction end
 
+# Export so submodules can access it
+export AndersonImpurityModel, HokseonReproduce, DistributionTools, AndersonImpurityModels
+export dot
+
 memorypath = "memory/"
 
 include(memorypath * "ImaginaryGreens.jl")
-#export BrandbygeAdsorbate
+export ImaginaryGreens
+
+
+include(memorypath * "WeightedEHPDOS.jl")
 
 
 end

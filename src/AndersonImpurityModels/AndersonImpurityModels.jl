@@ -9,6 +9,8 @@ module AndersonImpurityModels
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
 using ..HokseonReproduce: HokseonReproduce, DistributionTools 
+using NQCModels.DiabaticModels: WideBandBathDiscretisation
+using Unitful,UnitfulAtomic
 # we use the parent module's abstract type Model and the broadcastable function
 
 
