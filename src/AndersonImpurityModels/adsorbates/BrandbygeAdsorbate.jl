@@ -57,11 +57,15 @@ function HokseonReproduce.Aak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
 
     lorentzian = HokseonReproduce.DOS(position, adsorbate_m)
 
-    Δ = lorentzian.Γ # Lorentzian width
+    Δ = lorentzian.Γ # Lorentzian width aka hybridisation (eV)
 
     Aak_vec = zeros(Float64, length(bathstates))
 
-    Aak_vec .= bath.bathcoupling .* Δ ./ height ./ 2pi
+    A = sqrt(Δ / height / 2pi) # coupling strength (eV)
+
+    ā = 1 # coupling resale (eV^{-1/2})
+
+    Aak_vec .= A .* bath.bathcoupling .* ā  # Impurity-bath coupling vector (eV)
 
     return Aak_vec
 end
@@ -82,11 +86,17 @@ function HokseonReproduce.A′ak(bath::WideBandBathDiscretisation, adsorbate_m::
     width = bath.bathstates[end] - bath.bathstates[1]
     height = Nstates / width
 
+    Δ = HokseonReproduce.DOS(position, adsorbate_m).Γ
+
     Δ′ = HokseonReproduce.dΔ_dr(position, adsorbate_m)
 
     A′ak_vec = zeros(Float64, length(bathstates))
 
-    A′ak_vec .= Δ′ .* bath.bathcoupling ./ height ./ 2pi
+    A′ = sqrt(1 / height / 2pi) * (Δ′/ 2 / Δ)
+
+    ā = 1 # coupling resale (eV^{-1/2})
+
+    A′ak_vec .= A′ .* bath.bathcoupling .* ā
 
     return A′ak_vec
     
