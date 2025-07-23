@@ -97,13 +97,15 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     return Lambda_val
 end
 
-position = austrip(1.0*u"Å")
+position = austrip(0.5*u"Å")
 
 
-energies = (collect(100:500) ./ 1000)
+energies = (collect(1:500))
 energies_au = austrip.(energies*u"eV")
 #energy = austrip(10/1000 * u"eV")
 temperature = austrip(300*u"K")
 adsorbate_m = AndersonImpurityModels.BrandbygeAdsorbate()
 
-Lambda(energies_au[1], bath, adsorbate_m, position, temperature)
+Lambda_au = Lambda(energies_au[1], bath, adsorbate_m, position, temperature)
+
+Lambda_fs⁻² = auconvert(u"fs^-2", Lambda_au)

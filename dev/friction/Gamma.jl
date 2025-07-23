@@ -110,11 +110,11 @@ function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpuri
     return Gamma_val
 end
 
-energy_1 = 1.0
-energy_2 = 2.0
+energy_1 = austrip.(0.5*u"eV")
+energy_2 = austrip.(2.0*u"eV")
 
 
-position = 2.0
+position = austrip(0.5*u"Å")
 
 R = R_matrix(energy_1, bath, AndersonImpurityModels.BrandbygeAdsorbate(), position)
 
