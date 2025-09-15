@@ -5,7 +5,7 @@ Base.@kwdef struct BrandbygeAdsorbate <: AndersonImpurityModel
     ε∞::AbstractFloat = austrip(5.0*u"eV")
     C::AbstractFloat = austrip(3.0*u"eV")
     α::AbstractFloat = 0.5
-    shift::AbstractFloat = austrip(4.0*u"eV")
+    shift::AbstractFloat = austrip(0.0*u"eV")
 end
 
 
@@ -39,9 +39,9 @@ function HokseonReproduce.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
     return -m.β * m.Δ₀ * exp(-m.β * r)
 end
 
-function HokseonReproduce.Aak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
-    Aak : Calculate the Aak vector for the constant bath and BrandbygeAdsorbate model.
+    Vak : Calculate the Vak vector for the constant bath and BrandbygeAdsorbate model.
     
     bath : Bath object containing bath states and coupling
     adsorbate_m : BrandbygeAdsorbate model
@@ -59,20 +59,20 @@ function HokseonReproduce.Aak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
 
     Δ = lorentzian.Γ # Lorentzian width aka hybridisation (eV)
 
-    Aak_vec = zeros(Float64, length(bathstates))
+    Vak_vec = zeros(Float64, length(bathstates))
 
-    A = sqrt(Δ / height / 2pi) # coupling strength (eV)
+    A = sqrt(Δ / (height * pi * -1)) # coupling strength (eV)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    Aak_vec .= A .* bath.bathcoupling .* ā  # Impurity-bath coupling vector (eV)
+    Vak_vec .= A .* bath.bathcoupling .* ā  # Impurity-bath coupling vector (eV)
 
-    return Aak_vec
+    return Vak_vec
 end
 
-function HokseonReproduce.A′ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function HokseonReproduce.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
-    A′ak : Calculate the A′ak vector for the constant bath and BrandbygeAdsorbate model.
+    V′ak : Calculate the V′ak vector for the constant bath and BrandbygeAdsorbate model.
     
     bath : Bath object containing bath states and coupling
     adsorbate_m : BrandbygeAdsorbate model
@@ -90,14 +90,14 @@ function HokseonReproduce.A′ak(bath::WideBandBathDiscretisation, adsorbate_m::
 
     Δ′ = HokseonReproduce.dΔ_dr(position, adsorbate_m)
 
-    A′ak_vec = zeros(Float64, length(bathstates))
+    V′ak_vec = zeros(Float64, length(bathstates))
 
-    A′ = sqrt(1 / height / 2pi) * (Δ′/ 2 / Δ)
+    V′ =  - (Δ′/ (2 * sqrt(Δ))) / sqrt(height * pi)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    A′ak_vec .= A′ .* bath.bathcoupling .* ā
+    V′ak_vec .= V′ .* bath.bathcoupling .* ā
 
-    return A′ak_vec
+    return V′ak_vec
     
 end
