@@ -33,6 +33,9 @@ deps/src/
 docs/build/
 docs/site/
 
+# Manifest files for Julia environments
+Manifest.toml
+
 ################################################################################
 #                               Jupyter Notebook                               #
 ################################################################################
