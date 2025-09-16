@@ -24,7 +24,7 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     """
 
 
-    coupling_k = HokseonReproduce.Aak(bath, adsorbate_m, position)
+    coupling_k = HokseonReproduce.Vak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
     
@@ -54,9 +54,9 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
 end
 
 
-function A′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
+function V′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
     """
-    A′_matrix : Calculate the A′ matrix for the given energy and parameters.
+    V′_matrix : Calculate the V′ matrix for the given energy and parameters.
     
     energy : Energy value
     bathstates : Vector of bath states
@@ -67,14 +67,14 @@ function A′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
     Returns a matrix of size (matrix_size, matrix_size)
     """
 
-    A′_matrix = zeros(Float64, length(bath.bathstates)+1, length(bath.bathstates)+1)
-    coupling_k_vector = HokseonReproduce.A′ak(bath, adsorbate_m, position)
+    V′_matrix = zeros(Float64, length(bath.bathstates)+1, length(bath.bathstates)+1)
+    coupling_k_vector = HokseonReproduce.V′ak(bath, adsorbate_m, position)
 
 
-    A′_matrix[1,2:end] = coupling_k_vector
-    A′_matrix[2:end,1] = A′_matrix[1,2:end]  # Make it symmetric
+    V′_matrix[1,2:end] = coupling_k_vector
+    V′_matrix[2:end,1] = V′_matrix[1,2:end]  # Make it symmetric
 
-    return A′_matrix
+    return V′_matrix
 
 end
 
@@ -88,9 +88,9 @@ function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpuri
     
     # Calculate the Gamma value
 
-    A′ = A′_matrix(bath, adsorbate_m, position)
-    Gamma_1 = R_matrix(energy_1, bath, adsorbate_m, position) * A′
-    Gamma_2 = R_matrix(energy_2, bath, adsorbate_m, position) * A′
+    V′ = V′_matrix(bath, adsorbate_m, position)
+    Gamma_1 = R_matrix(energy_1, bath, adsorbate_m, position) * V′
+    Gamma_2 = R_matrix(energy_2, bath, adsorbate_m, position) * V′
 
     Gamma_val = dot(Gamma_1, Gamma_2')
 

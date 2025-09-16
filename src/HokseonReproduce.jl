@@ -37,12 +37,12 @@ function dΔ_dr(r::Real, d::Distribution)
     error("Δ_dr function not implemented for this distribution type")
 end
 
-function Aak(bath::Bath, adsorbate_m::Model, position::Real)
-    error("Aak function not implemented for this bath and adsorbate model")
+function Vak(bath::Bath, adsorbate_m::Model, position::Real)
+    error("Vak function not implemented for this bath and adsorbate model")
 end
 
-function A′ak(bath::Bath, adsorbate_m::Model, position::Real)
-    error("A′ak function not implemented for this bath and adsorbate model")
+function V′ak(bath::Bath, adsorbate_m::Model, position::Real)
+    error("V′ak function not implemented for this bath and adsorbate model")
 end
 
 
