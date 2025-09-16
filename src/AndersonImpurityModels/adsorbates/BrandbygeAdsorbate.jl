@@ -61,11 +61,11 @@ function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
 
     Vak_vec = zeros(Float64, length(bathstates))
 
-    A = sqrt(Δ / (height * pi * -1)) # coupling strength (eV)
+    A = sqrt(Δ / (height * pi)) # coupling strength (eV)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    Vak_vec .= A .* bath.bathcoupling .* ā  # Impurity-bath coupling vector (eV)
+    Vak_vec .= A .* bath.bathcoupling.^2 .* ā  # bath in NQCModels has weight bathcoupling.^2
 
     return Vak_vec
 end
@@ -92,11 +92,11 @@ function HokseonReproduce.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::
 
     V′ak_vec = zeros(Float64, length(bathstates))
 
-    V′ =  - (Δ′/ (2 * sqrt(Δ))) / sqrt(height * pi)
+    V′ =  (Δ′/ (2 * sqrt(Δ))) / sqrt(height * pi)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    V′ak_vec .= V′ .* bath.bathcoupling .* ā
+    V′ak_vec .= V′ .* bath.bathcoupling.^2 .* ā # bath in NQCModels has weight bathcoupling.^2
 
     return V′ak_vec
     
