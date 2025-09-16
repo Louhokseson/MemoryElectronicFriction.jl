@@ -37,6 +37,6 @@ export ImaginaryGreens
 
 
 include(memorypath * "WeightedEHPDOS.jl")
-
+export WeightedEHPDOS
 
 end
