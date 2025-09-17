@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1' # This will use the latest 1.x version, e.g., 1.10.x or 1.11.x
+          - '1.11.5' # This will use the latest 1.x version, e.g., 1.10.x or 1.11.x
         os:
           - ubuntu-latest
         arch:
