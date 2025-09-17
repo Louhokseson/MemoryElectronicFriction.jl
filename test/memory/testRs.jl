@@ -199,3 +199,6 @@ end
     
     @test sum(result_Rkk′ .≈ expected_Rkk′) == length(energy_vec)
 end
+
+
+@info "Test of R terms in ImaginaryGreen.jl finished."
