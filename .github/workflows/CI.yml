@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - fix-ci-workflow
     tags: '*'
   pull_request:
 concurrency:
