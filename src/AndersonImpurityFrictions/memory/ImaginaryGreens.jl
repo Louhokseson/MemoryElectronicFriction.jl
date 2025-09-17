@@ -7,7 +7,7 @@ function Raa(energy::Real, adsorbate_m::AndersonImpurityModel, position)
     return HokseonReproduce.PDF(energy, lorentzian) .* 2pi
 end
 
-function Rak(energy, bathstates::AbstractVector{Float64}, k::Int, adsorbate_m::AndersonImpurityModel, position, coupling_k::Float64)
+function Rak(energy::Real, bathstates::AbstractVector{Float64}, k::Int, adsorbate_m::AndersonImpurityModel, position, coupling_k::Float64)
     """
     Rak : Imaginary part of the retarded Green's function Gʳᵉᵗak
     a   : Index of the adsorbate
@@ -31,12 +31,12 @@ function Rak(energy, bathstates::AbstractVector{Float64}, k::Int, adsorbate_m::A
     # dirac delta function approximation
     delta_dist_approx = DistributionTools.Gaussian(bathstates[k], 1e-4)
 
-    Raa_value = Raa(energy, adsorbate_m, position)
+    Raa_value = Raa.(energy, adsorbate_m, position)
 
-    A48b_bracket_left = Raa_value * (1/(energy - bathstates[k])) 
-    A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * HokseonReproduce.PDF(energy, delta_dist_approx)
+    A48b_bracket_left = Raa_value .* (1 ./(energy .- bathstates[k])) 
+    A48b_bracket_right = Raa_value .* (energy .- ϵ) ./ (Δ) .* pi .* HokseonReproduce.PDF.(energy, delta_dist_approx)
 
-    return coupling_k * (A48b_bracket_left + A48b_bracket_right)
+    return coupling_k .* (A48b_bracket_left .+ A48b_bracket_right)
 end
 
 function ReGak(energy, bathstates::AbstractVector{Float64}, k::Int, adsorbate_m::AndersonImpurityModel, position, coupling_k::Float64)
