@@ -24,7 +24,7 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     """
 
 
-    coupling_k = HokseonReproduce.Vak(bath, adsorbate_m, position)
+    coupling_k = HokseonReproduce.Ak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
     

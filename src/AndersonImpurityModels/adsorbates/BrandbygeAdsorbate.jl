@@ -39,9 +39,10 @@ function HokseonReproduce.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
     return -m.β * m.Δ₀ * exp(-m.β * r)
 end
 
-function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function HokseonReproduce.Ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
-    Vak : Calculate the Vak vector for the constant bath and BrandbygeAdsorbate model.
+    Ak : Calculate the Ak coupling strength between impurity and bath in 
+         second quantised Newns-Anderson Hamiltonian.
     
     bath : Bath object containing bath states and coupling
     adsorbate_m : BrandbygeAdsorbate model
@@ -59,13 +60,30 @@ function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
 
     Δ = lorentzian.Γ # Lorentzian width aka hybridisation (eV)
 
-    Vak_vec = zeros(Float64, length(bathstates))
 
-    A = sqrt(Δ / (height * pi)) # coupling strength (eV)
+
+    Ak_vec = ones(Nstates) .* sqrt(Δ / (height * pi)) # coupling strength (eV)
+
+    return Ak_vec
+end
+
+function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+    """
+    Vak : Calculate the Vak vector for the constant bath and BrandbygeAdsorbate model 
+          incoprorating the discretisation weights.
+    
+    bath : Bath object containing bath states and coupling
+    adsorbate_m : BrandbygeAdsorbate model
+    position : Position of the adsorbate from substrate
+    
+    Returns a vector of size (length(bath.bathstates),)
+    """
+
+    Ak_vec = HokseonReproduce.Ak(bath, adsorbate_m, position)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    Vak_vec .= A .* bath.bathcoupling.^2 .* ā  # bath in NQCModels has weight bathcoupling.^2
+    Vak_vec = Ak_vec .* bath.bathcoupling.^2 .* ā  # bath in NQCModels has weight bathcoupling.^2
 
     return Vak_vec
 end
