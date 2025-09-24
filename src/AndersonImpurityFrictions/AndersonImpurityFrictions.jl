@@ -39,4 +39,7 @@ export ImaginaryGreens
 include(memorypath * "WeightedEHPDOS.jl")
 export WeightedEHPDOS
 
+include(memorypath * "FrequencyLambda.jl")
+export FrequencyLambda
+
 end
