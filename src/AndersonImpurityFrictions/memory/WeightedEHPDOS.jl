@@ -24,7 +24,7 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     """
 
 
-    coupling_k = HokseonReproduce.Ak(bath, adsorbate_m, position)
+    coupling_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
     
@@ -37,14 +37,14 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     R_matrix[1,1] =  ImaginaryGreens.Raa(energy,adsorbate_m,position)
 
     for k in 1:length(bathstates)
-        R_matrix[1,k+1] = ImaginaryGreens.Rak(energy, bathstates, k, adsorbate_m, position, coupling_k[k])
+        R_matrix[1,k+1] = ImaginaryGreens.Rak(energy, bathstates, k, adsorbate_m, position, coupling_vec[k])
     end
     R_matrix[2:end,1] .= R_matrix[1,2:end]  # Make it symmetric
 
 
     for k in 1:length(bathstates)
         for k′ in 1:length(bathstates)
-            R_matrix[k+1,k′+1] = ImaginaryGreens.Rkk′(energy, bathstates, k, k′, adsorbate_m, position, coupling_k[k])
+            R_matrix[k+1,k′+1] = ImaginaryGreens.Rkk′(energy, bathstates, k, k′, adsorbate_m, position, coupling_vec[k], coupling_vec[k′])
         end
     end
 
@@ -92,7 +92,8 @@ function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpuri
     Gamma_1 = R_matrix(energy_1, bath, adsorbate_m, position) * V′
     Gamma_2 = R_matrix(energy_2, bath, adsorbate_m, position) * V′
 
-    Gamma_val = dot(Gamma_1, Gamma_2')
+    ## faster than tr(Gamma_1 * Gamma_2) O(n³)
+    Gamma_val = dot(Gamma_1, Gamma_2')  # O(n²)
 
     return Gamma_val
 end
