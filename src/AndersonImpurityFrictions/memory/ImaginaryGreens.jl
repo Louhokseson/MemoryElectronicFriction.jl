@@ -74,7 +74,7 @@ function ReGak(energy, bathstates::AbstractVector{Float64}, k::Int, adsorbate_m:
 end
 
 
-function Rkk′(energy, bathstates::AbstractVector{Float64}, k::Int, k′::Int, adsorbate_m::AndersonImpurityModel, position, coupling_k::Float64)
+function Rkk′(energy, bathstates::AbstractVector{Float64}, k::Int, k′::Int, adsorbate_m::AndersonImpurityModel, position, coupling_k::Float64, coupling_k′::Float64)
     """
     Rkk′ : Imaginary part of the retarded Green's function Gʳᵉᵗkk′
     k k′ : Index of the substrate state
@@ -96,9 +96,9 @@ function Rkk′(energy, bathstates::AbstractVector{Float64}, k::Int, k′::Int, 
     first_term = kronecker_delta * 2pi * HokseonReproduce.PDF(energy, delta_dist_approx)
 
 
-    ReGak′_val = ReGak(energy, bathstates, k′, adsorbate_m, position, coupling_k)
+    ReGak′_val = ReGak(energy, bathstates, k′, adsorbate_m, position, coupling_k′)
 
-    ImGak′_val = Rak(energy, bathstates, k′, adsorbate_m, position, coupling_k) * -0.5
+    ImGak′_val = Rak(energy, bathstates, k′, adsorbate_m, position, coupling_k′) * -0.5
 
     curly_bracket = (ImGak′_val * (1/(energy - bathstates[k])) - ReGak′_val * pi * HokseonReproduce.PDF(energy, delta_dist_approx))
     second_term = 2 * coupling_k * curly_bracket
