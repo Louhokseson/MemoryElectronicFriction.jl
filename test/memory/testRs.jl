@@ -44,7 +44,8 @@ end
 
     position = 1.6  # Example position
     k′ = 5  # Another example index
-    result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′(energy, bathstates, k, k′, adsorbate_m, position, coupling_k)
+    coupling_k′ = 5.0
+    result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′(energy, bathstates, k, k′, adsorbate_m, position, coupling_k, coupling_k′)
     
     Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
@@ -67,7 +68,7 @@ end
     A48b_bracket_left = Raa_value * (1/(energy - bathstates[k′])) 
     A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * HokseonReproduce.PDF(energy, delta_dist_approx_k′)
 
-    expected_Rak′ = coupling_k * (A48b_bracket_left + A48b_bracket_right)
+    expected_Rak′ = coupling_k′ * (A48b_bracket_left + A48b_bracket_right)
 
     Im_Gret_ak′ = expected_Rak′ / 2 * -1
 
@@ -86,7 +87,7 @@ end
 
     bracket_second = Raa_value * pi * HokseonReproduce.PDF(energy, delta_dist_approx_k′)
 
-    Re_Gret_ak′ = - 0.5 * coupling_k * (bracket_first + bracket_second)
+    Re_Gret_ak′ = - 0.5 * coupling_k′ * (bracket_first + bracket_second)
 
     """
     Re[G(ret)ak'] ends here
@@ -148,10 +149,10 @@ end
     position = 1.6  # Example position
     k = 3  # Example index
     k′ = 5  # Another example index
-
+    coupling_k′ = 5.0
     energy_vec = range(0, 6, length=100)  # Example energy range
 
-    result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′.(energy_vec, Ref(bathstates), Ref(k), Ref(k′), Ref(adsorbate_m), Ref(position), Ref(coupling_k))
+    result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′.(energy_vec, Ref(bathstates), Ref(k), Ref(k′), Ref(adsorbate_m), Ref(position), Ref(coupling_k), Ref(coupling_k′))
     
     Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
@@ -174,7 +175,7 @@ end
     A48b_bracket_left = Raa_value .* (1 ./(energy_vec .- bathstates[k′])) 
     A48b_bracket_right = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k′)
 
-    expected_Rak′ = coupling_k .* (A48b_bracket_left .+ A48b_bracket_right)
+    expected_Rak′ = coupling_k′ .* (A48b_bracket_left .+ A48b_bracket_right)
 
     Im_Gret_ak′ = expected_Rak′ ./ 2 .* -1
 
@@ -189,7 +190,7 @@ end
 
     bracket_first = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* (1 ./(energy_vec .- bathstates[k′]))
     bracket_second = Raa_value .* pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k′)
-    Re_Gret_ak′ = - 0.5 .* coupling_k .* (bracket_first .+ bracket_second)
+    Re_Gret_ak′ = - 0.5 .* coupling_k′ .* (bracket_first .+ bracket_second)
     """
     Re[G(ret)ak'] ends here
     """

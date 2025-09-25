@@ -59,12 +59,13 @@ end
     bath = NQCModels.FullGaussLegendre(nstates, bandmin, bandmax)
     position = 1.0  # Example position
     bathstates = collect(bath.bathstates)
-    coupling_k = HokseonReproduce.Ak(bath, adsorbate_m, position)
+    coupling_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
 
 
     ## test evaulation
     R_matrix_result = WeightedEHPDOS.R_matrix.(energy, Ref(bath), Ref(adsorbate_m), Ref(position))
-    @test all(isapprox.(R_matrix_result, transpose.(R_matrix_result); atol=1e-12, rtol=1e-8)) # Symmetricity check
+    ## Symmetricity check
+    @test all(isapprox.(R_matrix_result, transpose.(R_matrix_result); atol=1e-12, rtol=1e-8))
 
     ## Coordinate check where we assume that Raa and Rak and Rkk′ are correctly implemented in AndersonImpurityFrictions.ImaginaryGreens
     for i in 1:nstates+1
@@ -72,9 +73,9 @@ end
             if i == j == 1 
                 @test sum([M[1,1] for M in R_matrix_result] .== AndersonImpurityFrictions.ImaginaryGreens.Raa.(energy, Ref(adsorbate_m), Ref(position))) == energy_length
             elseif i == 1
-                @test sum([M[1,j] for M in R_matrix_result] .== AndersonImpurityFrictions.ImaginaryGreens.Rak.(energy, Ref(bathstates), Ref(j-1), Ref(adsorbate_m), Ref(position), Ref(coupling_k[j-1]))) == energy_length
+                @test sum([M[1,j] for M in R_matrix_result] .== AndersonImpurityFrictions.ImaginaryGreens.Rak.(energy, Ref(bathstates), Ref(j-1), Ref(adsorbate_m), Ref(position), Ref(coupling_vec[j-1]))) == energy_length
             else 
-                @test sum([M[i,j] for M in R_matrix_result] .== AndersonImpurityFrictions.ImaginaryGreens.Rkk′.(energy, Ref(bathstates), Ref(i-1), Ref(j-1), Ref(adsorbate_m), Ref(position), Ref(coupling_k[j-1]))) == energy_length
+                @test sum([M[i,j] for M in R_matrix_result] .== AndersonImpurityFrictions.ImaginaryGreens.Rkk′.(energy, Ref(bathstates), Ref(i-1), Ref(j-1), Ref(adsorbate_m), Ref(position), Ref(coupling_vec[i-1]), Ref(coupling_vec[j-1]))) == energy_length
             end
         end
     end
