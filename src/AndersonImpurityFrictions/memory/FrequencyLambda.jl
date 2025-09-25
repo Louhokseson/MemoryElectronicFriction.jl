@@ -31,9 +31,9 @@ function interval_limits(a::Real, b::Real, singularities, ϵ_shift)
 end
 
 # Cauchy principal value integration
-function principal_value_integral(f, ω::Real, bath; ε=1e-4)
+function principal_value_integral(f, ω::Real, sing_pts; ε=1e-4)
     # Get all singularities in x₁
-    sing_pts = singularities(bath,ω)
+    #sing_pts = singularities(bath,ω)
 
     # Integration intervals: split at each singularity
     bounds = [-Inf; sing_pts; Inf]
@@ -76,7 +76,8 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     Γ(ω₁,ω₂) = WeightedEHPDOS.Gamma(ω₁, ω₂, bath, adsorbate_m, position)
     f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
-    integral_val, err = principal_value_integral(f, energy, bath; ε=1e-3)
+    sing_pts = singularities(bath,energy)
+    integral_val, err = principal_value_integral(f, energy, sing_pts; ε=1e-4)
     return - 1/energy * integral_val / (2π)
 end
 
