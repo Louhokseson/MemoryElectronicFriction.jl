@@ -2,9 +2,7 @@
 
 ![CI Workflow Status](https://github.com/Louhokseson/HokseonReproduce/actions/workflows/CI.yml/badge.svg)
 
-This code base is using the [Julia Language](https://julialang.org/) and
-[DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/)
-to make a reproducible scientific project named
+This repo Requires Julia version `>=1.11`. You can find the latest stable version from [here](https://julialang.org/downloads/).
 > HokseonReproduce
 
 It is authored by Hokseon.
@@ -30,3 +28,13 @@ using DrWatson
 @quickactivate "HokseonReproduce"
 ```
 which auto-activate the project and enable local path handling from DrWatson.
+
+### Frequency Dependent Friction $\Lambda(\omega)$
+The repo is initially developed for replicating the frequency dependent electronic friction from a  adsorbate coupling a electronic bath provided  by [Brandbyge & his collabrators](https://doi.org/10.1103/PhysRevB.52.6042). 
+
+#### Implementation 
+`FrequencyLambda.Lambda()` conducts a serie of computationally static steps involving integration with respect to the outcome from matrix products. To broadcast the frequency dependent friction with an array of $\omega$ s which apparantly shares the same operational memory, it is adviced to apply [**Multithreading**](https://docs.julialang.org/en/v1/manual/multi-threading/) in the Julia process. Simply by
+```bash
+julia -t auto your_script_to_call_Lambda.jl
+```
+the calculation speed can be significantly ramped up based on the number of available threads in your machine.
