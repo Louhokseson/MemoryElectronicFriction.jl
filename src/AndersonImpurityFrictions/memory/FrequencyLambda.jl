@@ -31,7 +31,7 @@ function interval_limits(a::Real, b::Real, singularities, ϵ_shift)
 end
 
 # Cauchy principal value integration
-function principal_value_integral(f, ω::Real, sing_pts; ε=1e-4)
+function principal_value_integral(f, ω::Real, sing_pts; ε=1e-9)
     # Get all singularities in x₁
     #sing_pts = singularities(bath,ω)
 
@@ -44,12 +44,46 @@ function principal_value_integral(f, ω::Real, sing_pts; ε=1e-4)
     for i in 1:length(bounds)-1
         a, b = interval_limits(bounds[i], bounds[i+1], sing_pts, ε)
 
-        integral, error = quadgk(x1 -> f(x1, ω), a, b; rtol=1e-6)
+        integral, error = quadgk(x1 -> f(x1, ω), a, b; rtol=1e-12)
         total += integral
         total_error += error
     end
 
     return total, total_error
+end
+
+
+function piecewise_cauchy_interval(sing_pts::AbstractArray)
+
+    midpoints = vcat([(sing_pts[1] - (sing_pts[2] - sing_pts[1]) + sing_pts[1])/2], 
+                             ([(sing_pts[i] + sing_pts[i+1])/2] for i in 1:(length(sing_pts)-1))..., 
+                             [(sing_pts[end] + (sing_pts[end] + (sing_pts[end] - sing_pts[end-1])))/2])
+    return [-Inf; midpoints ; Inf]
+
+end
+
+
+
+function cauchy_integral(f, ω::Real, sing_pts; ε=1e-10)
+
+    bounds = piecewise_cauchy_interval(sing_pts)
+
+    total = 0.0
+
+    for i in 1:length(bounds)-1
+        a, b = bounds[i], bounds[i+1]
+        if i == 1 || i == length(bounds)-1
+            integral = quadgk(x1 -> f(x1, ω), a, b; rtol=1e-12)[1]
+        else
+            left, _ = quadgk(x -> f(x,1), a, sing_pts[i-1]-ε)
+            right, _ = quadgk(x -> f(x,1), sing_pts[i-1]+ε, b)
+            integral = left + right
+        end
+        total += integral
+    end
+
+    return total
+
 end
 
 
@@ -77,7 +111,7 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
     sing_pts = singularities(bath,energy)
-    integral_val, err = principal_value_integral(f, energy, sing_pts; ε=1e-4)
+    integral_val = cauchy_integral(f, energy, sing_pts; ε=1e-4)
     return - 1/energy * integral_val / (2π)
 end
 

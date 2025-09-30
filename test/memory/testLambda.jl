@@ -24,10 +24,17 @@ end
 @testset "Principal value integration" begin
 
     ## function has singularities at x = 1, 2, 3 with integration as 0 from -Inf to Inf
-    f(x,y) = 1/(x-1)/(x-3)/(x-2)
-    principal_integration_result = FrequencyLambda.principal_value_integral(f, 1.0, [1.0, 2.0, 3.0])[1]
+    #f(x,y) = 1/(x-1)/(x-3)/(x-2)
 
-    @test isapprox(principal_integration_result, 0.0, atol=1e-5)
+    xk = [-4,-3,-2,-1,0,1,2,3,4,5]
+    f(x,y) = sum(k / (x - xk[k]) for k in 1:10)
+
+
+    principal_integration_result = FrequencyLambda.cauchy_integral(f, 1.0, xk)[1]
+
+    @info "Principal value integral result: $principal_integration_result"
+
+    @test isapprox(principal_integration_result, 0, atol=1e-6)
 
 end
 
