@@ -111,7 +111,7 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
     sing_pts = singularities(bath,energy)
-    integral_val = cauchy_integral(f, energy, sing_pts; ε=1e-4)
+    integral_val = cauchy_integral(f, energy, sing_pts)
     return - 1/energy * integral_val / (2π)
 end
 
