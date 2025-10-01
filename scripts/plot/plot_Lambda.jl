@@ -21,24 +21,13 @@ colormap = HokseonPlots.NICECOLORS;
 HokseonAssistant.julia_session()
 
 
-
-position = 0.3
-position_au = austrip.(position*u"Å")
-energies = collect(0.05:0.001:0.5)
-energies_au = austrip.(energies*u"eV")
-temperatures = collect(5500:-500:4000)
-temperatures_au = austrip.(temperatures*u"K")
-adsorbate_m = AndersonImpurityModels.BrandbygeAdsorbate()
-
 all_params = Dict{String, Any}(
     "nstates" => [5],
     "width" => [6],
-    "temperature" => [300.0],
     "discretisation" => [:GapGaussLegendre],
     "impuritymodel" => :Hokseon,
-    "gap" => [0.49],
     "centre" => [0],
-    "position" => [1.0],
+    "position" => collect(0.1:0.1:0.5),
 )
 
 params_list = dict_list(all_params)
@@ -47,10 +36,16 @@ if typeof(params_list) != Vector{Dict{String, Any}}
     params_list = [params_list]
 end
 
-@unpack nstates, width, centre, position = params_list[1]
+@unpack nstates, width, centre, position = all_params
 bandmin = - austrip(((width / 2) - centre) * u"eV")
 bandmax = austrip(((width / 2) + centre)* u"eV")
 bath = NQCModels.TrapezoidalRule(nstates, bandmin, bandmax)
+position_au = austrip.(position*u"Å")
+energies = collect(0.05:0.001:0.5)
+energies_au = austrip.(energies*u"eV")
+temperatures = 5500
+temperatures_au = austrip.(temperatures*u"K")
+adsorbate_m = AndersonImpurityModels.BrandbygeAdsorbate()
 
 function Lambda_threaded(energy_vec_au, bath, adsorbate_model, adsorbate_position_au, temperature_au)
 
@@ -167,7 +162,13 @@ function plot_lambda_vs_energy()
     return fig 
 end
 
-save(plotsdir("frequency_friction", "Lambda_x=$(position)_nstates_$(nstates).pdf"), plot_lambda_vs_energy())
+if length(position) != 1
+    savingname = "Lambda_x=$(position)_nstates_$(nstates).pdf"
+elseif length(temperatures) != 1
+    savingname = "temperatures=$(temperatures)_nstates_$(nstates).pdf"
+end
+
+save(plotsdir("frequency_friction", savingname), plot_lambda_vs_energy())
 
 
 
