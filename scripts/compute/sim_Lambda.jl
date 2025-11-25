@@ -13,6 +13,7 @@ using Unitful, UnitfulAtomic
 using NQCModels.QuantumModels
 using NQCModels
 using HDF5
+using DelimitedFiles
 HokseonAssistant.julia_session()
 
 """
@@ -45,13 +46,12 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [5],
+    "nstates" => [20],
     "width" => [6],
-    "temperature" => [300.0],
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
-    "position" => [0.1,0.2,0.3],
+    "position" => [0.3],
     "temperature" => collect(5500:-500:4000),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
@@ -67,12 +67,14 @@ end
 
 for params_dict in params_list
     bath, adsorbate_m, position_au, energy_au, temperature_au = buildSystemBath(params_dict)
-    Lambda_au_vec =  FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au)
+    Lambda_au =  FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au)
 
 
     path = datadir("sims", "lambda")
 
-    name = savename(params_dict; allowedtypes=(Number, String, Symbol, UnionAll)) * ".h5"
+    name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
-    h5write(path * "/" * name, "Lambda_au_vec", Lambda_au_vec)
+    full_data = vcat(header, hcat(energy_au, Lambda_au)...)
+
+    writedlm(path * "/" * name, full_data, ' ')
 end
