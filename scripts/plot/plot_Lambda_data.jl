@@ -28,7 +28,7 @@ params_list = dict_list(Dict{String, Any}(
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
     "position" => [1.0],
-    "temperature" => collect(5500:-500:5500),
+    "temperature" => collect(5500:-500:4500),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
     "energy" => [collect(0.05:0.001:0.5)],
@@ -46,7 +46,7 @@ function plot_Lambda_data()
     ax = MyAxis(fig[1,1], xlabel="Energy / eV", ylabel= "Lambda / a.u.⁻²",limits=(nothing, nothing, nothing, nothing))
     
 
-    for params_dict in params_list
+    for (i,params_dict) in enumerate(params_list)
         name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
         @unpack nstates, width, centre, position, temperature = params_dict
@@ -61,13 +61,16 @@ function plot_Lambda_data()
 
         Lambda_au = data[:, 2]
 
-        lines!(ax, energy_eV, Lambda_au; color=colormap[2], linewidth=2, label="T = $(temperature) K")
+        lines!(ax, energy_eV, Lambda_au; color=colormap[i], linewidth=2, label="T = $(temperature) K")
 
-        title_text = "pos=$(position) Å, nstates=$(nstates), width=$(width) eV"
 
-    Legend(fig[1,1], ax, title_text, titleposition = :top, tellwidth=false, tellheight=false, valign=:top, halign=:left, margin=(5, 5, 5, 5), orientation=:vertical)
+
     end
 
+    @unpack nstates, width, centre, position, temperature = first(params_list)
+
+    title_text = "pos=$(position) Å, nstates=$(nstates), width=$(width) eV"
+    Legend(fig[1,1], ax, title_text, titleposition = :top, tellwidth=false, tellheight=false, valign=:top, halign=:left, margin=(5, 5, 5, 5), orientation=:vertical)
 
     return fig
 
