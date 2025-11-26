@@ -7,17 +7,10 @@ if !isdefined(Main, :HokseonReproduce)
     using .HokseonReproduce
 end
 
-using CairoMakie
-using HokseonPlots
 using HokseonAssistant
-using ColorSchemes
-using Colors
 using Unitful, UnitfulAtomic
-using DelimitedFiles
-using LaTeXStrings, Printf
 using NQCModels
-colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
-colormap = HokseonPlots.NICECOLORS;
+
 HokseonAssistant.julia_session()
 
 all_params = Dict{String, Any}(
@@ -38,7 +31,7 @@ bandmin = - austrip(((width / 2) - centre) * u"eV")
 bandmax = austrip(((width / 2) + centre)* u"eV")
 bath = NQCModels.TrapezoidalRule(nstates, bandmin, bandmax)
 position_au = austrip.(position*u"Å")
-energies = collect(0.05:0.001:0.5)
+energies = collect(0.05:0.001:0.074)
 energies_au = austrip.(energies*u"eV")
 temperatures = 5500
 temperatures_au = austrip.(temperatures*u"K")
@@ -54,9 +47,9 @@ function sim_Lambda(energy_vec_au, bath, adsorbate_model, adsorbate_position_au,
     return Lambda_nau_vec, Lambda_au_vec
 end
 
-energy = energies_au[2]
+energy = [energies_au[2]]
 
-
+"""
 fermidirac = DistributionTools.FermiDirac(0.0, temperatures_au)
 bounds = FrequencyLambda.effective_bounds(bath, fermidirac, energy)
 
@@ -65,7 +58,18 @@ bath_sing_pts = FrequencyLambda.bath_singularities(bath, energy)
 ω₁_range_min, ω₁_range_max = FrequencyLambda.ω₁_effective_range(fermidirac, energy)
 
 midpoints = FrequencyLambda.piecewise_midpoint_cauchy_interval(bath_sing_pts)
+"""
 
-Lambda_nau_vec, Lambda_au_vec = sim_Lambda(energy, bath, adsorbate_m, position_au[1], temperatures_au)
+@info "Starting Lambda calculation for energy = $energy au"
+
+t = @elapsed begin
+    Lambda_nau_vec, Lambda_au_vec =
+        sim_Lambda(energy, bath, adsorbate_m, position_au[1], temperatures_au)
+end
+
+@info "Lambda in au: $Lambda_au_vec"
+
+@info "Lambda call took $t seconds"
+
 
 
