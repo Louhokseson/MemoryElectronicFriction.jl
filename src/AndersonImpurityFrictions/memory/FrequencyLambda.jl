@@ -187,24 +187,20 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
 end
 
 
-# New vector overload
 function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
                 position::Real, temperature::Real, fermi_level::Real=0.0)
 
-    if Threads.nthreads() == 1
-        # Single-thread → broadcast
-        return Lambda.(energy_vec, Ref(bath), Ref(adsorbate_m),
-                       Ref(position), Ref(temperature), Ref(fermi_level))
-    else
-        # Multi-threaded loop
-        Lambda_au_vec = Vector{Float64}(undef, length(energy_vec))
-        Threads.@threads for i in eachindex(energy_vec)
-            Lambda_au_vec[i] = Lambda(energy_vec[i], bath, adsorbate_m,
-                                      position, temperature, fermi_level)
-        end
-        return Lambda_au_vec
+    Lambda_au_vec = similar(energy_vec, Float64)
+
+    @info "Using $(Threads.nthreads()) threads for frequency dependent friction Λ(ω) calculation"
+
+    Threads.@threads for i in eachindex(energy_vec)
+        @inbounds Lambda_au_vec[i] = Lambda(energy_vec[i], bath, adsorbate_m, position, temperature, fermi_level)
     end
+
+    return Lambda_au_vec
 end
+
 
 
 end
