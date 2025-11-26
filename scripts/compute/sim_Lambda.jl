@@ -51,7 +51,7 @@ params_list = dict_list(Dict{String, Any}(
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
-    "position" => [0.3],
+    "position" => [1.0],
     "temperature" => collect(5500:-500:4000),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
@@ -65,16 +65,22 @@ end
 
 
 
-for params_dict in params_list
+for (i,params_dict) in enumerate(params_list)
     bath, adsorbate_m, position_au, energy_au, temperature_au = buildSystemBath(params_dict)
-    Lambda_au =  FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au)
-
 
     path = datadir("sims", "lambda")
 
     name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
-    full_data = vcat(header, hcat(energy_au, Lambda_au)...)
+    @info string(i) * "/" * string(length(params_list)) * " run"
+
+    @info "Position $(params_dict["position"]) Å --- Temperature $(params_dict["temperature"]) K"
+
+    Lambda_au =  FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au)
+
+    header = ["energy_au" "Lambda_au"]
+
+    full_data = vcat(header, hcat(energy_au, Lambda_au))
 
     writedlm(path * "/" * name, full_data, ' ')
 end
