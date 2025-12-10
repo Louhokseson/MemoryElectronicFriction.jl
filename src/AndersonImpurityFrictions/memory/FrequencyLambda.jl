@@ -2,6 +2,7 @@ module FrequencyLambda
 import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel, ..WeightedEHPDOS
 using ..DistributionTools: FermiDirac
 using QuadGK
+using FLoops
 
 function bath_singularities(bath, ω::Real)
 
@@ -126,8 +127,7 @@ end
 
 
 
-
-function cauchy_integral(f, ω::Real, bounds::AbstractArray; ε=1e-7)
+function cauchy_integral(f, ω, bounds; ε=1e-12)
 
     """
     分段积分   : 根据奇异点之间的中点将积分区间划分为多个子区间，在每个子区间上进行积分
@@ -136,24 +136,32 @@ function cauchy_integral(f, ω::Real, bounds::AbstractArray; ε=1e-7)
     ω        : 能量值
     bounds   : 分段积分的区间边界
     ε        : 用于避开奇异点的微小偏移量
+
+    第一种情况 : Lambda 已经被多线程调用， 此时 cauchy_integral 使用单线程的方式进行积分计算
+                线程1 单独地执行 @floop ThreadedEx() 其他线程单独地执行 if Threads.threadid() > 1
+
+    第二种情况 : Lambda 只在主线程中被调用， 此时 cauchy_integral 使用多线程的方式进行积分计算
+                所有线程 多线程执行 @floop ThreadedEx() 
     """
 
-    total = 0.0
-
-    for i in 1:length(bounds)-1
-        a, b = bounds[i], bounds[i+1]
-
-        integral = 0.0
-        try
-            integral = quadgk(x1 -> f(x1, ω), a + ε, b - ε; rtol=1e-12)[1]
-        catch e
-            @error "Piecewise integration failed in interval [$a, $b]: \n $e" 
+    # If called inside a threaded region, use single-threaded fallback:
+    if Threads.threadid() > 1
+        total = 0.0
+        for i in 1:length(bounds)-1
+            a, b = bounds[i], bounds[i+1]
+            total += quadgk(x -> f(x, ω), a + ε, b - ε)[1]
         end
-        total += integral
+        return total
+    end
+
+    # If called from main thread (scalar Lambda), use multithreading:
+    @floop ThreadedEx() for i in 1:length(bounds)-1
+        a, b = bounds[i], bounds[i+1]
+        integral = quadgk(x -> f(x, ω), a + ε, b - ε)[1]
+        @reduce total += integral
     end
 
     return total
-
 end
 
 
@@ -192,7 +200,9 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
 
     Lambda_au_vec = similar(energy_vec, Float64)
 
-    @info "Using $(Threads.nthreads()) threads for frequency dependent friction Λ(ω) calculation"
+    n_energy = length(energy_vec)
+
+    @info "Using $(Threads.nthreads()) thread(s) for $(n_energy) energies for Λ(ω) calculation."
 
     Threads.@threads for i in eachindex(energy_vec)
         @inbounds Lambda_au_vec[i] = Lambda(energy_vec[i], bath, adsorbate_m, position, temperature, fermi_level)
