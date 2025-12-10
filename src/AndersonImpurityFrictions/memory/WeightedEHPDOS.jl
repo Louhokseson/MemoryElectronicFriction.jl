@@ -79,7 +79,7 @@ function V′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
 end
 
 
-function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real)
+function Gamma_from_matrix(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real)
     """
     Gamma : Calculate the Gamma matrix from the R and V matrices. (A33) in https://doi.org/10.1103/PhysRevB.52.6042
     
@@ -97,5 +97,53 @@ function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpuri
 
     return Gamma_val
 end
+
+
+function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real)
+
+    V′_vec = HokseonReproduce.V′ak(bath, adsorbate_m, position)
+
+    V_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
+
+    bathstates = collect(bath.bathstates)
+
+    N = length(bathstates) # bath number of states
+
+    R_ak_ω₁_vector = [ImaginaryGreens.Rak(energy_1, bathstates, k, adsorbate_m, position, V_vec[k]) for k in 1:N]
+
+    R_ak_ω₂_vector = [ImaginaryGreens.Rak(energy_2, bathstates, k, adsorbate_m, position, V_vec[k]) for k in 1:N]
+
+    ## k₁ = k₃ = a & k₂ = k₄ = a terms same value
+
+    case₁ = dot(R_ak_ω₁_vector,V′_vec) * dot(R_ak_ω₂_vector, V′_vec) * 2 # two equvivalent terms 
+
+    ## k₁ = k₄ = a
+
+    case₂ = 0.0
+    Rₐₐ_ω₁ = ImaginaryGreens.Raa(energy_1, adsorbate_m, position)
+    for k3 in 1:N
+        for k4 in 1:N
+            # R_k3k4 = R_k4k3
+            R_k₃k₄_ω₁ = ImaginaryGreens.Rkk′(energy_2, bathstates, k3, k4, adsorbate_m, position, V_vec[k3], V_vec[k4]) 
+            case₂ += V′_vec[k3] * V′_vec[k4] * R_k₃k₄_ω₁
+        end
+    end
+    case₂ *= Rₐₐ_ω₁
+
+
+    ## k₃ = k₄ = a
+    case₃ = 0.0
+    Rₐₐ_ω₂ = ImaginaryGreens.Raa(energy_2, adsorbate_m, position)
+    for k1 in 1:N
+        for k2 in 1:N
+            R_k₁k₂_ω₁ = ImaginaryGreens.Rkk′(energy_1, bathstates, k1, k2, adsorbate_m, position, V_vec[k1], V_vec[k2])
+            case₃ += V′_vec[k1] * V′_vec[k2] * R_k₁k₂_ω₁
+        end
+    end
+    case₃ *= Rₐₐ_ω₂
+
+    return case₁ + case₂ + case₃
+end
+
 
 end
