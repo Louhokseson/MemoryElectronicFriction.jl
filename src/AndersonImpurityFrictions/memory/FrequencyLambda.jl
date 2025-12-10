@@ -195,17 +195,72 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
 end
 
 
+"""
 function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
                 position::Real, temperature::Real, fermi_level::Real=0.0)
 
     Lambda_au_vec = similar(energy_vec, Float64)
 
-    n_energy = length(energy_vec)
-
-    @info "Using $(Threads.nthreads()) thread(s) for $(n_energy) energies for Λ(ω) calculation."
+    @info "Using n threads for frequency dependent friction Λ(ω) calculation"
 
     Threads.@threads for i in eachindex(energy_vec)
         @inbounds Lambda_au_vec[i] = Lambda(energy_vec[i], bath, adsorbate_m, position, temperature, fermi_level)
+    end
+
+    return Lambda_au_vec
+end
+"""
+
+function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
+                position::Real, temperature::Real, fermi_level::Real=0.0)
+    Lambda_au_vec = similar(energy_vec, Float64)
+
+    # -------------------------
+    # 1. PREBIND ALL GLOBALS
+    # -------------------------
+    local_bath   = bath
+    local_model  = adsorbate_m
+    local_pos    = position
+    local_temp   = temperature
+    local_ef     = fermi_level
+
+    # thread-local immutable object
+    local_FD = DistributionTools.FermiDirac(local_ef, local_temp)
+
+    # prebind module functions
+    local_PDF   = HokseonReproduce.PDF
+    local_Gamma = (ω1, ω2) -> WeightedEHPDOS.Gamma(ω1, ω2, local_bath, local_model, local_pos)
+
+    # -------------------------------------------------------
+    # 2. PRECOMPILE Λ ON MAIN THREAD TO AVOID RACE CONDITIONS
+    # -------------------------------------------------------
+    Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
+
+    @info "Using $(Threads.nthreads()) threads for Λ(ω)"
+
+    # -------------------------
+    # 3. PARALLEL LOOP
+    # -------------------------
+    Threads.@threads for i in eachindex(energy_vec)
+        e = energy_vec[i]
+
+        # -------------------------
+        # 4. THREAD-LOCAL INTEGRAND
+        # -------------------------
+        f = (ω1, ω) -> begin
+            Γval = local_Gamma(ω1, ω1 + ω)
+            dfdE = local_PDF(ω1 + ω, local_FD) - local_PDF(ω1, local_FD)
+            Γval * dfdE
+        end
+
+        bounds = effective_bounds(local_bath, local_FD, e)
+
+        # -------------------------
+        # 5. NUMERICAL INTEGRATION
+        # -------------------------
+        integral = cauchy_integral(f, e, bounds)
+
+        @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
     end
 
     return Lambda_au_vec
