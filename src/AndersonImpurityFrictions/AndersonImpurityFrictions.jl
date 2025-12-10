@@ -26,6 +26,8 @@ abstract type AndersonImpurityFriction <: HokseonReproduce.Friction end
 
 abstract type AndersonImpurityMemoryFriction <: AndersonImpurityFriction end
 
+abstract type AndersonImpurityMarkovianFriction <: AndersonImpurityFriction end
+
 # Export so submodules can access it
 export AndersonImpurityModel, HokseonReproduce, DistributionTools, AndersonImpurityModels
 export dot
@@ -41,5 +43,10 @@ export WeightedEHPDOS
 
 include(memorypath * "FrequencyLambda.jl")
 export FrequencyLambda
+
+
+nonmemorypath = "Markovian/"
+include(nonmemorypath * "MarkovianLambda.jl")
+export MarkovianLambda
 
 end
