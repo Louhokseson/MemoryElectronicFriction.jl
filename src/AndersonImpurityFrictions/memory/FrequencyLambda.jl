@@ -127,7 +127,7 @@ end
 
 
 
-function cauchy_integral(f, ω, bounds; ε=1e-12)
+function cauchy_integral(f, ω, bounds)
 
     """
     分段积分   : 根据奇异点之间的中点将积分区间划分为多个子区间，在每个子区间上进行积分
@@ -137,18 +137,27 @@ function cauchy_integral(f, ω, bounds; ε=1e-12)
     bounds   : 分段积分的区间边界
     ε        : 用于避开奇异点的微小偏移量
 
-    第一种情况 : Lambda 已经被多线程调用， 此时 cauchy_integral 使用单线程的方式进行积分计算
-                线程1 单独地执行 @floop ThreadedEx() 其他线程单独地执行 if Threads.threadid() > 1
+    适用于两种情况
 
-    第二种情况 : Lambda 只在主线程中被调用， 此时 cauchy_integral 使用多线程的方式进行积分计算
-                所有线程 多线程执行 @floop ThreadedEx() 
+    一 : Lambda 已经被多线程调用 (一列energy_vec), 此时 cauchy_integral 使用单线程的方式进行积分计算
+                线程1   单独地处理所有分段积分 @floop ThreadedEx() 
+                其他线程 单独地处理所有分段积分 if Threads.threadid() > 1
+
+    二 : Lambda 只在主线程中被调用 (单个energy), 此时 cauchy_integral 使用多线程的方式进行积分计算
+                所有线程 多线程分配分段积分 @floop ThreadedEx() 
     """
+
+    #@info "Thread ID: $(Threads.threadid()) starting cauchy integral computation."
 
     # If called inside a threaded region, use single-threaded fallback:
     if Threads.threadid() > 1
         total = 0.0
         for i in 1:length(bounds)-1
             a, b = bounds[i], bounds[i+1]
+
+            Δ = b - a
+            ε = max(Δ*1e-8, 1e-9)  # safer if interval is tiny
+
             total += quadgk(x -> f(x, ω), a + ε, b - ε)[1]
         end
         return total
@@ -157,6 +166,10 @@ function cauchy_integral(f, ω, bounds; ε=1e-12)
     # If called from main thread (scalar Lambda), use multithreading:
     @floop ThreadedEx() for i in 1:length(bounds)-1
         a, b = bounds[i], bounds[i+1]
+
+        Δ = b - a
+        ε = max(Δ*1e-8, 1e-9)  # safer if interval is tiny
+
         integral = quadgk(x -> f(x, ω), a + ε, b - ε)[1]
         @reduce total += integral
     end
@@ -234,14 +247,19 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
     # -------------------------------------------------------
     # 2. PRECOMPILE Λ ON MAIN THREAD TO AVOID RACE CONDITIONS
     # -------------------------------------------------------
-    Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
+    n_energy = length(energy_vec)
 
-    @info "Using $(Threads.nthreads()) threads for Λ(ω)"
+    @info "Using $(Threads.nthreads()) threads for $(n_energy) energies at Λ(ω)"
+    @info "Precompiling a single energy point before multithreading..."
+    Lambda_au_vec[1] = Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
+    @info "Precompilation done."
 
     # -------------------------
     # 3. PARALLEL LOOP
     # -------------------------
-    Threads.@threads for i in eachindex(energy_vec)
+    @info "Starting multithreaded Λ(ω) calculation..."
+
+    Threads.@threads for i in 2:n_energy
         e = energy_vec[i]
 
         # -------------------------
@@ -262,6 +280,8 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
 
         @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
     end
+
+    @info "Λ(ω) calculation completed."
 
     return Lambda_au_vec
 end
