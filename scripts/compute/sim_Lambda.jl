@@ -46,16 +46,16 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [20],
-    "width" => [6],
+    "nstates" => [60],
+    "width" => [8],
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
     "position" => [1.0],
-    "temperature" => collect(5500:-500:4000),
+    "temperature" => collect(5500:-500:5500),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
-    "energy" => [collect(0.05:0.001:0.5)],
+    "energy" => [0.05],
 ))
 
 # just make sure that params_list is a list with Dicts
