@@ -58,7 +58,7 @@ end
 for (i,params_dict) in enumerate(params_list)
     bath, adsorbate_m, position_au, energy_au, temperature_au = buildSystemBath(params_dict)
 
-    path = datadir("sims", "lambda")
+    path = datadir("sims", "lambda", string(nameof(params_dict["discretisation"])))
 
     name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
