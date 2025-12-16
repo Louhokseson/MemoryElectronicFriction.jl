@@ -1,32 +1,22 @@
+using Distributed
 using DrWatson
 @quickactivate "HokseonReproduce"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
-end
-
-
-using HokseonAssistant
-using Unitful, UnitfulAtomic
-using NQCModels.QuantumModels
-using NQCModels
 using HDF5
 using DelimitedFiles
+#using HokseonAssistant
+
+# Activate project everywhere
+@everywhere using DrWatson
+@everywhere @quickactivate "HokseonReproduce"
+@everywhere using HokseonReproduce
+@everywhere using Unitful, UnitfulAtomic
+@everywhere using NQCModels.QuantumModels
+@everywhere using NQCModels
+@everywhere using HokseonAssistant
+
 HokseonAssistant.julia_session()
 
-"""
-function sim_Lambda(energy_vec_au, bath, adsorbate_model, adsorbate_position_au, temperature_au)
-
-    # Calculate Lambda_au for all energies in a single pass.
-    Lambda_au_vec = FrequencyLambda.Lambda(energy_vec_au, bath, adsorbate_model, adsorbate_position_au, temperature_au)
-    # Use broadcasting to convert the results to the desired units.
-    Lambda_nau_vec = ustrip.(auconvert.(u"fs^-2", Lambda_au_vec))
-
-    return Lambda_nau_vec, Lambda_au_vec
-end
-"""
 
 function buildSystemBath(params_dict::Dict{String, Any})
     @unpack nstates, width, centre, position, discretisation, impuritymodel, temperature, energy = params_dict
@@ -46,8 +36,8 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [60],
-    "width" => [8],
+    "nstates" => [20],
+    "width" => [4],
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
@@ -55,7 +45,7 @@ params_list = dict_list(Dict{String, Any}(
     "temperature" => collect(5500:-500:5500),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
-    "energy" => [0.05],
+    "energy" => [collect(0.05:0.05:0.5)],
 ))
 
 # just make sure that params_list is a list with Dicts
@@ -76,7 +66,7 @@ for (i,params_dict) in enumerate(params_list)
 
     @info "Position $(params_dict["position"]) Å --- Temperature $(params_dict["temperature"]) K"
 
-    Lambda_au =  FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au)
+    Lambda_au = FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au) ## only here uses multiprocessing 
 
     header = ["energy_au" "Lambda_au"]
 

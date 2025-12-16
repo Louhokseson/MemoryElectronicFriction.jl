@@ -2,6 +2,7 @@ module FrequencyLambda
 import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel, ..WeightedEHPDOS
 using ..DistributionTools: FermiDirac
 using QuadGK
+using Distributed # Needed for the pmap/workers logic
 using FLoops
 
 function bath_singularities(bath, ω::Real)
@@ -177,6 +178,9 @@ function cauchy_integral(f, ω, bounds)
     return total
 end
 
+# --------------------------------------------------------------------------
+# 2. SCALAR KERNEL (Unchanged - The core unit of work)
+# --------------------------------------------------------------------------
 
 function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
     """
@@ -208,82 +212,85 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
 end
 
 
-"""
-function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
-                position::Real, temperature::Real, fermi_level::Real=0.0)
-
-    Lambda_au_vec = similar(energy_vec, Float64)
-
-    @info "Using n threads for frequency dependent friction Λ(ω) calculation"
-
-    Threads.@threads for i in eachindex(energy_vec)
-        @inbounds Lambda_au_vec[i] = Lambda(energy_vec[i], bath, adsorbate_m, position, temperature, fermi_level)
-    end
-
-    return Lambda_au_vec
-end
-"""
+# --------------------------------------------------------------------------
+# 3. VECTOR OVERLOAD (The new automatic hybrid dispatcher)
+# --------------------------------------------------------------------------
 
 function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
                 position::Real, temperature::Real, fermi_level::Real=0.0)
-    Lambda_au_vec = similar(energy_vec, Float64)
+    
+    # 1. Check available worker processes
+    avail_workers = workers()
+    # A robust check: if there is more than just the main process (PID 1)
+    has_workers = length(avail_workers) > 1 || (length(avail_workers) == 1 && avail_workers[1] != 1)
+    n_workers = length(avail_workers)
 
-    # -------------------------
-    # 1. PREBIND ALL GLOBALS
-    # -------------------------
-    local_bath   = bath
-    local_model  = adsorbate_m
-    local_pos    = position
-    local_temp   = temperature
-    local_ef     = fermi_level
+    if has_workers
+        # ----------------------------------------------------
+        # 🚀 STRATEGY 1: MULTIPROCESSING (Hybrid Outer/Inner)
+        # ----------------------------------------------------
 
-    # thread-local immutable object
-    local_FD = DistributionTools.FermiDirac(local_ef, local_temp)
+        # Get the number of threads available to each worker (which is the same as the Master's setting)
+        threads_per_worker = Threads.nthreads()
+        
+        @info "Hybrid Parallelism: Distributing $(length(energy_vec)) energies across $n_workers worker processes, with $threads_per_worker threads per worker." 
 
-    # prebind module functions
-    local_PDF   = HokseonReproduce.PDF
-    local_Gamma = (ω1, ω2) -> WeightedEHPDOS.Gamma(ω1, ω2, local_bath, local_model, local_pos)
+        # Define the work function. This closure captures all arguments (bath, model, etc.)
+        # and transfers them once per worker via pmap's internal mechanism.
+        worker_func(e) = Lambda(e, bath, adsorbate_m, position, temperature, fermi_level)
 
-    # -------------------------------------------------------
-    # 2. PRECOMPILE Λ ON MAIN THREAD TO AVOID RACE CONDITIONS
-    # -------------------------------------------------------
-    n_energy = length(energy_vec)
+        # pmap distributes the work element-by-element. Each element executes Lambda(e),
+        # where cauchy_integral uses the worker's internal threads.
 
-    @info "Using $(Threads.nthreads()) threads for $(n_energy) energies at Λ(ω)"
-    @info "Precompiling a single energy point before multithreading..."
-    Lambda_au_vec[1] = Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
-    @info "Precompilation done."
+        results_iterator = pmap(worker_func, energy_vec)
+        
+        return collect(results_iterator) # Collect the results into a single Vector
 
-    # -------------------------
-    # 3. PARALLEL LOOP
-    # -------------------------
-    @info "Starting multithreaded Λ(ω) calculation..."
+    else
+        # -----------------------------------------------------------------
+        # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING (Original optimized code)
+        # -----------------------------------------------------------------
+        n_energy = length(energy_vec)
+        Lambda_au_vec = similar(energy_vec, Float64)
 
-    Threads.@threads for i in 2:n_energy
-        e = energy_vec[i]
+        @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
 
-        # -------------------------
-        # 4. THREAD-LOCAL INTEGRAND
-        # -------------------------
-        f = (ω1, ω) -> begin
-            Γval = local_Gamma(ω1, ω1 + ω)
-            dfdE = local_PDF(ω1 + ω, local_FD) - local_PDF(ω1, local_FD)
-            Γval * dfdE
+        # --- Re-implementing the original efficient threaded loop ---
+        # 1. Prebind Globals for the threaded loop
+        local_bath   = bath
+        local_model  = adsorbate_m
+        local_pos    = position
+        local_temp   = temperature
+        local_ef     = fermi_level
+        local_FD     = DistributionTools.FermiDirac(local_ef, local_temp)
+        local_PDF    = HokseonReproduce.PDF
+        local_Gamma  = (ω1, ω2) -> WeightedEHPDOS.Gamma(ω1, ω2, local_bath, local_model, local_pos)
+        
+        # 2. Precompile/Warm-up
+        @info "Precompiling a single energy point before multithreading..."
+        Lambda_au_vec[1] = Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
+        @info "Precompilation done."
+
+        # 3. Threaded Loop (Outer parallelism). Inner integral will run serially.
+        @info "Starting multithreaded Λ(ω) calculation..."
+        Threads.@threads for i in 2:n_energy
+            e = energy_vec[i]
+            
+            f = (ω1, ω) -> begin
+                Γval = local_Gamma(ω1, ω1 + ω)
+                dfdE = local_PDF(ω1 + ω, local_FD) - local_PDF(ω1, local_FD)
+                Γval * dfdE
+            end
+            
+            bounds = effective_bounds(local_bath, local_FD, e)
+            integral = cauchy_integral(f, e, bounds)
+            
+            @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
         end
+        @info "Λ(ω) calculation completed."
 
-        bounds = effective_bounds(local_bath, local_FD, e)
-
-        # -------------------------
-        # 5. NUMERICAL INTEGRATION
-        # -------------------------
-        integral = cauchy_integral(f, e, bounds)
-
-        @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
+        return Lambda_au_vec
     end
-
-    @info "Λ(ω) calculation completed."
-
-    return Lambda_au_vec
 end
 
 
