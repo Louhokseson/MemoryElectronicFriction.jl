@@ -4,7 +4,9 @@ using DrWatson
 
 using HDF5
 using DelimitedFiles
-#using HokseonAssistant
+using HokseonAssistant
+HokseonAssistant.julia_build_procs()
+
 
 # Activate project everywhere
 @everywhere using DrWatson
@@ -13,10 +15,6 @@ using DelimitedFiles
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using NQCModels.QuantumModels
 @everywhere using NQCModels
-@everywhere using HokseonAssistant
-
-HokseonAssistant.julia_session()
-
 
 function buildSystemBath(params_dict::Dict{String, Any})
     @unpack nstates, width, centre, position, discretisation, impuritymodel, temperature, energy = params_dict
@@ -36,16 +34,16 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [20],
-    "width" => [4],
+    "nstates" => [30],
+    "width" => [4,6,8],
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
     "position" => [1.0],
-    "temperature" => collect(5500:-500:5500),
+    "temperature" => collect(5500:-500:4000),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
-    "energy" => [collect(0.05:0.05:0.5)],
+    "energy" => [collect(0.05:0.01:0.5)],
 ))
 
 # just make sure that params_list is a list with Dicts
@@ -62,7 +60,7 @@ for (i,params_dict) in enumerate(params_list)
 
     name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
-    @info string(i) * "/" * string(length(params_list)) * " run"
+    println(string(i) * "/" * string(length(params_list)) * " run")
 
     @info "Position $(params_dict["position"]) Å --- Temperature $(params_dict["temperature"]) K"
 
