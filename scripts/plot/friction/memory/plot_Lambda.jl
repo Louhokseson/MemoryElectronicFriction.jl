@@ -22,17 +22,15 @@ HokseonAssistant.julia_session()
 
 
 all_params = Dict{String, Any}(
-    "nstates" => [5],
-    "width" => [6],
-    "discretisation" => [:GapGaussLegendre],
-    "impuritymodel" => :Hokseon,
-    "centre" => [0],
+    "nstates" => 5,
+    "width" => 6,
+    "centre" => 0,
     "position" => collect(0.1:0.1:0.5),
 )
 
 params_list = dict_list(all_params)
 # just make sure that params_list is a list with Dicts
-if typeof(params_list) != Vector{Dict{String, Any}}
+if !(params_list isa Vector)
     params_list = [params_list]
 end
 
@@ -47,23 +45,6 @@ temperatures = 5500
 temperatures_au = austrip.(temperatures*u"K")
 adsorbate_m = AndersonImpurityModels.BrandbygeAdsorbate()
 
-function Lambda_threaded(energy_vec_au, bath, adsorbate_model, adsorbate_position_au, temperature_au)
-
-    Lambda_au_vec = Vector{Float64}(undef, length(energy_vec_au))
-
-    # Parallelize the loop using @threads
-    Threads.@threads for i in eachindex(energy_vec_au)
-        Lambda_au_vec[i] = Lambda(
-            energy_vec_au[i],
-            bath,
-            adsorbate_model,
-            adsorbate_position_au,
-            temperature_au
-        )
-    end
-
-    return Lambda_au_vec
-end
 
 
 
