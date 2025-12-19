@@ -1,20 +1,19 @@
+## Only for the main process 
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
-
+@quickactivate "HokseonReproduce" ## Activate project everywhere
 using HDF5
 using DelimitedFiles
 using HokseonAssistant
-HokseonAssistant.julia_build_procs()
+HokseonAssistant.julia_build_procs() 
 
 
-# Activate project everywhere
-@everywhere using DrWatson
-@everywhere @quickactivate "HokseonReproduce"
+# Load packages everywhere
 @everywhere using HokseonReproduce
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using NQCModels.QuantumModels
 @everywhere using NQCModels
+
 
 function buildSystemBath(params_dict::Dict{String, Any})
     @unpack nstates, width, centre, position, discretisation, impuritymodel, temperature, energy = params_dict
@@ -34,7 +33,7 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [30],
+    "nstates" => [10],
     "width" => [4,6,8],
     "discretisation" => [NQCModels.TrapezoidalRule],
     "impuritymodel" => [:BrandbygeAdsorbate],
