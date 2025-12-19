@@ -2,7 +2,7 @@
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "65ae60f05c001dcad95f5becffb42216c9520970"
+project_hash = "a1597164ed18befd4d19dc08faa21d1aa5152d0d"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -280,12 +280,6 @@ weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
     ChainRulesCoreSparseArraysExt = "SparseArrays"
-
-[[deps.ClusterManagers]]
-deps = ["Distributed", "Logging", "Pkg", "Sockets"]
-git-tree-sha1 = "17b0689c7e6b2f48f71c6834b6a1ed6882be10d2"
-uuid = "34f1f09b-3a8b-5176-ab39-66d58a4d544e"
-version = "2.0.0"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
@@ -829,10 +823,10 @@ uuid = "076d061b-32b6-4027-95e0-9a2c6f6d7e74"
 version = "0.2.0"
 
 [[deps.HokseonAssistant]]
-deps = ["ClusterManagers", "Distributed"]
-git-tree-sha1 = "ee87f2ecc9400e642e04fded59b639f8d485b603"
+deps = ["Distributed", "SlurmClusterManager"]
+git-tree-sha1 = "82605d1730577de03f367a122ec380a8b816cd37"
 uuid = "4e992a72-38bf-4f56-b165-33bbf4775b47"
-version = "1.2.0"
+version = "1.2.9"
 
 [[deps.HokseonPlots]]
 deps = ["CairoMakie", "ColorSchemes", "Colors"]
@@ -1752,6 +1746,12 @@ deps = ["Dates", "FileIO", "ImageCore", "IndirectArrays", "OffsetArrays", "REPL"
 git-tree-sha1 = "0494aed9501e7fb65daba895fb7fd57cc38bc743"
 uuid = "45858cf5-a6b0-47a3-bbea-62219f50df47"
 version = "0.1.5"
+
+[[deps.SlurmClusterManager]]
+deps = ["Distributed"]
+git-tree-sha1 = "0689bbb1a914b979cf01419c7d8b553425ba18e9"
+uuid = "c82cd089-7bf7-41d7-976b-6b5d413cbe0a"
+version = "1.1.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
