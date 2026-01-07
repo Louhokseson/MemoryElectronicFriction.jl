@@ -83,7 +83,7 @@ function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    Vak_vec = Ak_vec .* bath.bathcoupling.^2 .* ā  # bath in NQCModels has weight bathcoupling.^2
+    Vak_vec = Ak_vec .* bath.bathcoupling .* ā  # bath in NQCModels has weight bathcoupling.^2
 
     return Vak_vec
 end
@@ -114,7 +114,7 @@ function HokseonReproduce.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::
 
     ā = 1 # coupling resale (eV^{-1/2})
 
-    V′ak_vec .= V′ .* bath.bathcoupling.^2 .* ā # bath in NQCModels has weight bathcoupling.^2
+    V′ak_vec .= V′ .* bath.bathcoupling .* ā # bath in NQCModels has weight bathcoupling.^2
 
     return V′ak_vec
     
