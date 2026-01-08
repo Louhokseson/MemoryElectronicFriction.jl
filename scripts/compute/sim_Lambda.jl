@@ -33,8 +33,8 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [10],
-    "width" => [4],
+    "nstates" => [30],
+    "width" => [16,18,20,22,24],
     "discretisation" => [NQCModels.ShenviGaussLegendre],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
@@ -55,7 +55,7 @@ end
 for (i,params_dict) in enumerate(params_list)
     bath, adsorbate_m, position_au, energy_au, temperature_au = buildSystemBath(params_dict)
 
-    path = mkpath(datadir("sims", "lambda", string(nameof(params_dict["discretisation"]))))
+    path = mkpath(datadir("sims", "lambda", string(params_dict["impuritymodel"]), string(nameof(params_dict["discretisation"])), "nstates="*string(params_dict["nstates"]) ) )
 
     name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
