@@ -34,15 +34,15 @@ end
 
 params_list = dict_list(Dict{String, Any}(
     "nstates" => [10],
-    "width" => [4,6,8],
-    "discretisation" => [NQCModels.TrapezoidalRule],
+    "width" => [4],
+    "discretisation" => [NQCModels.ShenviGaussLegendre],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
     "position" => [1.0],
-    "temperature" => collect(5500:-500:4000),
+    "temperature" => collect(5500:-500:5500),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole
-    "energy" => [collect(0.05:0.01:0.5)],
+    "energy" => [collect(0.05:0.01:0.1)],
 ))
 
 # just make sure that params_list is a list with Dicts
@@ -55,7 +55,7 @@ end
 for (i,params_dict) in enumerate(params_list)
     bath, adsorbate_m, position_au, energy_au, temperature_au = buildSystemBath(params_dict)
 
-    path = datadir("sims", "lambda", string(nameof(params_dict["discretisation"])))
+    path = mkpath(datadir("sims", "lambda", string(nameof(params_dict["discretisation"]))))
 
     name = savename(delete!(params_dict, "energy"); allowedtypes=(Number, String, Symbol, UnionAll)) * ".txt"
 
