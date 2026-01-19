@@ -33,16 +33,18 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [30],
-    "width" => [16,18,20,22,24],
+    "nstates" => [20],
+    "width" => [6],
     "discretisation" => [NQCModels.ShenviGaussLegendre],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
     "position" => [1.0],
     "temperature" => collect(5500:-500:5500),
 
-    ## extra [] to make collect(...) as a whole a single parameter as a whole
-    "energy" => [collect(0.05:0.01:0.1)],
+    ## extra [] to make collect(...) as a whole a single parameter as a whole collect(0.05:0.01:0.1)
+    "energy" => [[0.05,0.5]],
+
+    "ϵ_shift" => [1e-12, 1e-13, 1e-14],
 ))
 
 # just make sure that params_list is a list with Dicts
@@ -61,9 +63,11 @@ for (i,params_dict) in enumerate(params_list)
 
     println(string(i) * "/" * string(length(params_list)) * " run")
 
-    @info "Position $(params_dict["position"]) Å --- Temperature $(params_dict["temperature"]) K"
+    @info "Position $(params_dict["position"]) Å --- Temperature $(params_dict["temperature"]) K ---"
 
-    Lambda_au = FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au) ## only here uses multiprocessing 
+    ϵ_shift=params_dict["ϵ_shift"]
+
+    Lambda_au = FrequencyLambda.Lambda(energy_au, bath, adsorbate_m, position_au, temperature_au; ϵ_shift) ## only here uses multiprocessing 
 
     header = ["energy_au" "Lambda_au"]
 
