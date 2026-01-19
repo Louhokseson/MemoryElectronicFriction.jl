@@ -126,6 +126,27 @@ function effective_bounds(bath, fermidirac::FermiDirac, ω::Real)
     return bounds
 end
 
+function effective_sing_pts(bath, fermidirac::FermiDirac, ω::Real)
+
+    """
+
+    bath       : 离散的 bath 对象
+    fermidirac : FermiDirac 分布对象
+    ω          : 能量值
+
+    返回        : ω₁的有效范围里的奇异点
+
+    """
+
+    bath_sing_pts = bath_singularities(bath,ω)
+
+    ω₁_range_min, ω₁_range_max = ω₁_effective_range(fermidirac, ω)
+
+    bath_sing_pts_effective = bath_sing_pts[min(ω₁_range_min,ω₁_range_max) .≤ bath_sing_pts .≤ max(ω₁_range_min,ω₁_range_max)]
+
+    return bath_sing_pts_effective
+end
+
 
 
 function cauchy_integral(f, ω, bounds)
@@ -178,11 +199,75 @@ function cauchy_integral(f, ω, bounds)
     return total
 end
 
+function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-3)
+
+    """
+    分段积分   : 在奇异点周围建立分段积分区间，去掉奇异点本身
+
+    f。        : 被积函数
+    ω          : 能量值
+    sing_pts   : 奇异点列表
+    ϵ          : 用于避开奇异点的微小偏移量
+    δ          : 用于定义奇异点周围积分区间的微小范围
+
+    适用于两种情况
+
+    一 : Lambda 已经被多线程调用 (一列energy_vec), 此时 singularities_integral 使用单线程的方式进行积分计算
+                线程1   单独地处理所有分段积分 @floop ThreadedEx() 
+                其他线程 单独地处理所有分段积分 if Threads.threadid() > 1
+
+                **小结 : 每个线程被分配到一个energy, 然后各自处理所有奇异点的分段积分
+
+    二 : Lambda 只在主线程中被调用 (单个energy), 此时 singularities_integral 使用多线程的方式进行积分计算
+                所有线程 多线程分配分段积分 @floop ThreadedEx() 
+                
+                **小结 : 那单独的energy的分段积分被多个线程分配处理 (这一般分配了不同的energy到不同的worker进程中)
+    """
+
+    @info "Thread ID: $(Threads.threadid()) starting cauchy integral computation."
+
+    # If called inside a threaded region, use single-threaded fallback:
+    if Threads.threadid() > 1
+        total = 0.0
+        total_error = 0.0
+        for sing in sing_pts
+            a, b = sing - δ, sing - ϵ
+            A, B = sing + ϵ, sing + δ
+
+            val1, err1 = quadgk(x -> f(x, ω), a, b)
+            val2, err2 = quadgk(x -> f(x, ω), A, B)
+
+            total += val1 + val2
+            total_error += err1 + err2
+        end
+        @info "Estimated total integration error: $total_error"
+        return total
+    end
+
+    # If called from main thread (scalar Lambda), use multithreading:
+    @floop ThreadedEx() for sing in sing_pts
+        a, b = sing - δ, sing - ϵ
+        A, B = sing + ϵ, sing + δ
+
+        val1, err1 = quadgk(x -> f(x, ω), a, b)
+        val2, err2 = quadgk(x -> f(x, ω), A, B)
+        integral = val1 + val2
+        error = err1 + err2
+
+        @reduce total += integral
+        @reduce total_error += error
+    end
+
+    @info "Estimated total integration error: $total_error"
+
+    return total
+end
+
 # --------------------------------------------------------------------------
 # 2. SCALAR KERNEL (Unchanged - The core unit of work)
 # --------------------------------------------------------------------------
 
-function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13)
     """
     Lambda : Calculate the energy dependent friction 
              at a given energy, electronic temperature, discretised bath and adsorbate model.
@@ -195,6 +280,8 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     position : Position of the adsorbate from substrate
     temperature : Electronic temperature in atomic units
     fermi_level : Fermi level of the system in atomic units (default is 0.0 eV)
+
+    ϵ_shift : Small shift to avoid singularities in integration (default is 1e-13)
     
     Returns a scalar value representing the energy dependent friction at the given energy.
     """
@@ -205,9 +292,11 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
     Γ(ω₁,ω₂) = WeightedEHPDOS.Gamma(ω₁, ω₂, bath, adsorbate_m, position)
     f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
-    bounds = effective_bounds(bath, fermidirac, energy)
+    #bounds = effective_bounds(bath, fermidirac, energy)
+    sing_pts = effective_sing_pts(bath, fermidirac, energy)
     
-    integral_val = cauchy_integral(f, energy, bounds)
+    #integral_val = cauchy_integral(f, energy, bounds)
+    integral_val = singularities_integral(f, energy, sing_pts; ϵ = ϵ_shift)
     return - 1/energy * integral_val / (2π)
 end
 
@@ -217,7 +306,7 @@ end
 # --------------------------------------------------------------------------
 
 function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
-                position::Real, temperature::Real, fermi_level::Real=0.0)
+                position::Real, temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13)
     
     # 1. Check available worker processes
     avail_workers = workers()
@@ -282,8 +371,10 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
                 Γval * dfdE
             end
             
-            bounds = effective_bounds(local_bath, local_FD, e)
-            integral = cauchy_integral(f, e, bounds)
+            #bounds = effective_bounds(local_bath, local_FD, e)
+            sing_pts = effective_sing_pts(local_bath, local_FD, e)
+            #integral = cauchy_integral(f, e, bounds)
+            integral = singularities_integral(f, e, sing_pts; ϵ = ϵ_shift)
             
             @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
         end
