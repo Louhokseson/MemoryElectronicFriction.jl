@@ -199,7 +199,7 @@ function cauchy_integral(f, ω, bounds)
     return total
 end
 
-function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-3)
+function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-5)
 
     """
     分段积分   : 在奇异点周围建立分段积分区间，去掉奇异点本身
