@@ -2,6 +2,7 @@
 using Distributed
 using DrWatson
 @quickactivate "HokseonReproduce" ## Activate project everywhere
+import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
 using HDF5
 using DelimitedFiles
 using HokseonAssistant
@@ -33,18 +34,18 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [20],
-    "width" => [6],
+    "nstates" => [30],
+    "width" => [4],
     "discretisation" => [NQCModels.ShenviGaussLegendre],
     "impuritymodel" => [:BrandbygeAdsorbate],
     "centre" => [0],
-    "position" => [1.0],
-    "temperature" => collect(5500:-500:5500),
+    "position" => [0.5],
+    "temperature" => collect(5500:-500:4000),
 
     ## extra [] to make collect(...) as a whole a single parameter as a whole collect(0.05:0.01:0.1)
-    "energy" => [[0.05,0.5]],
+    "energy" => [collect(0.05:0.01:6.0)],
 
-    "ϵ_shift" => [1e-12, 1e-13, 1e-14],
+    "ϵ_shift" => [1e-13],
 ))
 
 # just make sure that params_list is a list with Dicts
