@@ -223,6 +223,8 @@ function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6
                 
                 **小结 : 那单独的energy的分段积分被多个线程分配处理 (这一般分配了不同的energy到不同的worker进程中)
     """
+    ## make sure δ is not too large compared to the spacing of singularities
+    δ = min(δ, minimum(diff(sort(sing_pts))) / 2)
 
     @info "Thread ID: $(Threads.threadid()) starting cauchy integral computation."
 
