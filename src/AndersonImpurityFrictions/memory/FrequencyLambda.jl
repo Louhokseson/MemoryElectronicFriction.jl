@@ -199,7 +199,7 @@ function cauchy_integral(f, ω, bounds)
     return total
 end
 
-function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6)
+function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6, adaptive::Bool = true)
 
     """
     分段积分   : 在奇异点周围建立分段积分区间，去掉奇异点本身
@@ -224,7 +224,25 @@ function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6
                 **小结 : 那单独的energy的分段积分被多个线程分配处理 (这一般分配了不同的energy到不同的worker进程中)
     """
     ## make sure δ is not too large compared to the spacing of singularities
-    δ = min(δ, minimum(diff(sort(sing_pts))) / 2)
+    #δ = min(δ, minimum(diff(sort(sing_pts))) / 2)
+
+    # 定义安全的积分函数
+    function safe_quadgk(f, a, b)
+        try
+            return quadgk(f, a, b)
+        catch e
+            if adaptive && ϵ < 1e-10  
+                @warn "Integration failed near [$a, $b] with ϵ=$ϵ. Trying with larger ϵ."
+                # 递归调用但使用更大的ϵ
+                new_ϵ = min(ϵ * 100, δ/10)
+                return singularities_integral(f, ω, sing_pts; 
+                                             ϵ=new_ϵ, δ=δ, 
+                                             adaptive=false)  # 防止无限递归
+            else
+                rethrow(e)
+            end
+        end
+    end
 
     @info "Thread ID: $(Threads.threadid()) starting cauchy integral computation."
 
@@ -236,8 +254,8 @@ function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6
             a, b = sing - δ, sing - ϵ
             A, B = sing + ϵ, sing + δ
 
-            val1, err1 = quadgk(x -> f(x, ω), a, b)
-            val2, err2 = quadgk(x -> f(x, ω), A, B)
+            val1, err1 = safe_quadgk(x -> f(x, ω), a, b)
+            val2, err2 = safe_quadgk(x -> f(x, ω), A, B)
 
             total += val1 + val2
             total_error += err1 + err2
@@ -251,8 +269,8 @@ function singularities_integral(f, ω, sing_pts; ϵ::Real = 1e-15, δ::Real=1e-6
         a, b = sing - δ, sing - ϵ
         A, B = sing + ϵ, sing + δ
 
-        val1, err1 = quadgk(x -> f(x, ω), a, b)
-        val2, err2 = quadgk(x -> f(x, ω), A, B)
+        val1, err1 = safe_quadgk(x -> f(x, ω), a, b)
+        val2, err2 = safe_quadgk(x -> f(x, ω), A, B)
         integral = val1 + val2
         error = err1 + err2
 
