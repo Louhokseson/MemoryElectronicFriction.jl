@@ -149,6 +149,32 @@ end
 
 
 
+function find_effective_sing_pts_with_poles(sing_pts, f; peturbation::Real = 5e-7)
+    """
+    sing_pts : 原始奇异点列表
+    f        : 被积函数
+    peturbation : 用于在奇异点的peturbation
+    
+    返回      : 经过peturbation后非0的奇异点的列表
+    """
+    
+    peturbated_sing_pts = sing_pts .- peturbation
+    n = length(sing_pts)
+    
+    # 预分配数组
+    mask = Vector{Bool}(undef, n)
+    
+    # 使用 @floop 填充数组
+    @floop ThreadedEx() for i in 1:n
+        mask[i] = f(peturbated_sing_pts[i]) > 1e-2
+    end
+    #@info sum(mask) == n
+    
+    return sing_pts[mask]
+end
+
+
+
 function cauchy_integral(f, ω, bounds)
 
     """
@@ -287,7 +313,7 @@ end
 # 2. SCALAR KERNEL (Unchanged - The core unit of work)
 # --------------------------------------------------------------------------
 
-function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13)
+function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13, find_sing_pts_poles::Bool = true)
     """
     Lambda : Calculate the energy dependent friction 
              at a given energy, electronic temperature, discretised bath and adsorbate model.
@@ -314,7 +340,11 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
 
     #bounds = effective_bounds(bath, fermidirac, energy)
     sing_pts = effective_sing_pts(bath, fermidirac, energy)
-    
+
+    if find_sing_pts_poles
+        g(ω₁) = Γ(ω₁, energy + ω₁)
+        sing_pts = find_effective_sing_pts_with_poles(sing_pts, g)
+    end
     #integral_val = cauchy_integral(f, energy, bounds)
     integral_val = singularities_integral(f, energy, sing_pts; ϵ = ϵ_shift)
     return - 1/energy * integral_val / (2π)
@@ -326,7 +356,7 @@ end
 # --------------------------------------------------------------------------
 
 function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityModel,
-                position::Real, temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13)
+                position::Real, temperature::Real, fermi_level::Real=0.0; ϵ_shift::Real=1e-13, find_sing_pts_poles::Bool = true)
     
     # 1. Check available worker processes
     avail_workers = workers()
@@ -346,7 +376,7 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
 
         # Define the work function. This closure captures all arguments (bath, model, etc.)
         # and transfers them once per worker via pmap's internal mechanism.
-        worker_func(e) = Lambda(e, bath, adsorbate_m, position, temperature, fermi_level)
+        worker_func(e) = Lambda(e, bath, adsorbate_m, position, temperature, fermi_level; ϵ_shift, find_sing_pts_poles)
 
         # pmap distributes the work element-by-element. Each element executes Lambda(e),
         # where cauchy_integral uses the worker's internal threads.
@@ -377,7 +407,7 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
         
         # 2. Precompile/Warm-up
         @info "Precompiling a single energy point before multithreading..."
-        Lambda_au_vec[1] = Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level)
+        Lambda_au_vec[1] = Lambda(energy_vec[1], bath, adsorbate_m, position, temperature, fermi_level; find_sing_pts_poles)
         @info "Precompilation done."
 
         # 3. Threaded Loop (Outer parallelism). Inner integral will run serially.
@@ -393,7 +423,10 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
             
             #bounds = effective_bounds(local_bath, local_FD, e)
             sing_pts = effective_sing_pts(local_bath, local_FD, e)
-            #integral = cauchy_integral(f, e, bounds)
+            if find_sing_pts_poles
+                g(ω₁) = local_Gamma(ω₁, e + ω₁)
+                sing_pts = find_effective_sing_pts_with_poles(sing_pts, g)
+            end 
             integral = singularities_integral(f, e, sing_pts; ϵ = ϵ_shift)
             
             @inbounds Lambda_au_vec[i] = -(integral)/(e * 2π)
