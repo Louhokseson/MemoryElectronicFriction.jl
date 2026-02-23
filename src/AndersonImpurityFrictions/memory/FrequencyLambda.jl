@@ -166,7 +166,7 @@ function find_effective_sing_pts_with_poles(sing_pts, f; peturbation::Real = 5e-
     
     # 使用 @floop 填充数组
     @floop ThreadedEx() for i in 1:n
-        mask[i] = f(peturbated_sing_pts[i]) > 1e-2
+        mask[i] = f(peturbated_sing_pts[i]) > 5e-4
     end
     #@info sum(mask) == n
     
