@@ -34,7 +34,7 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "nstates" => [28],
+    "nstates" => [38],
     "width" => [4],
     "discretisation" => [NQCModels.ShenviGaussLegendre],
     "impuritymodel" => [:BrandbygeAdsorbate],
@@ -75,4 +75,6 @@ for (i,params_dict) in enumerate(params_list)
     push!(lambda_vectors, Lambda_au)
 end
 
-lambda_vectors[1] .- lambda_vectors[2]
+@info lambda_vectors
+
+@info lambda_vectors[1] .- lambda_vectors[2]
