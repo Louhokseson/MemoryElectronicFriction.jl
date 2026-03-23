@@ -7,7 +7,8 @@
 """
 
 module WeightedEHPDOS
-import ..AndersonImpurityModel, ..HokseonReproduce, ..ImaginaryGreens, ..dot
+import ..AndersonImpurityModels, ..HokseonReproduce, ..ImaginaryGreens, ..dot
+using ..AndersonImpurityModels: AndersonImpurityModel
 
 
 function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real)
@@ -141,6 +142,8 @@ function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpuri
         end
     end
     case₃ *= Rₐₐ_ω₂
+
+    #@info "case₁ = $case₁, case₂ = $case₂, case₃ = $case₃"
 
     return case₁ + case₂ + case₃
 end

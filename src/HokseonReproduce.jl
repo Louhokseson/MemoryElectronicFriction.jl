@@ -41,6 +41,14 @@ function dϵₐ_dr(r::Real, d::Distribution)
     error("ϵₐ_dr function not implemented for this distribution type")
 end
 
+function dΔ_dr(r::Real, d::Distribution, energy::Real)
+    error("Δ_dr function not implemented for this distribution type")
+end
+
+function dϵₐ_dr(r::Real, d::Distribution, energy::Real)
+    error("ϵₐ_dr function not implemented for this distribution type")
+end
+
 function Ak(bath::Bath, adsorbate_m::Model, position::Real)
     error("Ak function not implemented for this bath and adsorbate model")
 end

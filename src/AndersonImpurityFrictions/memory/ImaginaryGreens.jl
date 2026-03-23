@@ -1,5 +1,6 @@
 module ImaginaryGreens
-import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel
+import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModels
+using ..AndersonImpurityModels: AndersonImpurityModel
 
 function Raa(energy::Real, adsorbate_m::AndersonImpurityModel, position)
     # Documentation and logic here
