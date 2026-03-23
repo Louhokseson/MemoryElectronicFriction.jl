@@ -23,12 +23,17 @@ using StaticArrays: SMatrix, SVector
 using DrWatson
 
 abstract type AndersonImpurityModel <: HokseonReproduce.Model end
+abstract type WideBandLimitModel <: AndersonImpurityModel end
+abstract type FrequencyDependentModel <: AndersonImpurityModel end
+
+export AndersonImpurityModel, WideBandLimitModel, FrequencyDependentModel
 
 adsorbatepath = "adsorbates/"
 
 include(adsorbatepath * "BrandbygeAdsorbate.jl")
 include(adsorbatepath * "ErpenbeckThossAdsorbate.jl")
-export BrandbygeAdsorbate, ErpenbeckThossAdsorbate, AndersonImpurityModel
+export BrandbygeAdsorbate, ErpenbeckThossAdsorbate
+
 
 
 end

@@ -1,7 +1,7 @@
 module FrequencyLambda
-import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel, ..WeightedEHPDOS
+import ..HokseonReproduce, ..DistributionTools, ..WeightedEHPDOS
 using ..DistributionTools: FermiDirac
-using ..AndersonImpurityModels: BrandbygeAdsorbate
+using ..AndersonImpurityModels: WideBandLimitModel, FrequencyDependentModel, BrandbygeAdsorbate, AndersonImpurityModel
 using QuadGK
 using Distributed # Needed for the pmap/workers logic
 using FLoops
@@ -439,7 +439,7 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
 end
 
 
-function Lambda(ω::Real, adsorbate_m::AndersonImpurityModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+function Lambda(ω::Real, adsorbate_m::WideBandLimitModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
 
     """
 
@@ -467,6 +467,42 @@ function Lambda(ω::Real, adsorbate_m::AndersonImpurityModel, position::Real ,te
     A(ϵ) =  2 .* Δ ./ ((ϵ .- ϵₐ).^2 .+ Δ.^2)
 
     kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- ϵₐ) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- ϵₐ) .* dΔdx ./ Δ) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+
+    integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
+
+    return - integral ./ (ω * 4π)
+
+end
+
+
+function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+
+    """
+
+        Frequency-dependent friction calculation based on Anderson impurity model parameters
+    
+        输入:
+        ω : 能量值 度量能量尺度
+        position : adsorbate 与 substrate 的距离
+        temperature : 电子温度
+        fermi_level : 费米能级
+
+    """
+
+    r = position
+    fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
+
+    adsorbate_lorentizan(ω₁) = HokseonReproduce.DOS(r, adsorbate_m, ω₁)
+
+    ϵₐ(ω₁) = adsorbate_lorentizan(ω₁).ω0
+    Δ(ω₁) = adsorbate_lorentizan(ω₁).Γ
+
+    dϵₐdx(ω₁) = HokseonReproduce.dϵₐ_dr(r, adsorbate_m, ω₁)
+    dΔdx(ω₁) = HokseonReproduce.dΔ_dr(r, adsorbate_m, ω₁)
+
+    A(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
+
+    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx(ω₁) + (ω₁ .- ϵₐ(ω₁)) .* dΔdx(ω₁) ./ Δ(ω₁)) .* (dϵₐdx(ω₁) + (ω₁ .+ ω .- ϵₐ(ω₁)) .* dΔdx(ω₁) ./ Δ(ω₁)) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
     integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 

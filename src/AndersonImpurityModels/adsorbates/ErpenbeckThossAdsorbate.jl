@@ -16,7 +16,7 @@ This model is for impurity coupled with a constant wideband limit bath, and the 
 
 """
 
-Base.@kwdef struct ErpenbeckThossAdsorbate <: AndersonImpurityModel
+Base.@kwdef struct ErpenbeckThossAdsorbate <: WideBandLimitModel
     Γ::AbstractFloat
     m::AbstractFloat = austrip(1.0u"u")
     Dₑ::AbstractFloat = austrip(3.52u"eV")

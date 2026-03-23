@@ -1,5 +1,5 @@
 
-Base.@kwdef struct BrandbygeAdsorbate <: AndersonImpurityModel
+Base.@kwdef struct BrandbygeAdsorbate <: WideBandLimitModel
     Δ₀::AbstractFloat = austrip(0.2*u"eV")
     β::AbstractFloat = 1.0
     ε∞::AbstractFloat = austrip(5.0*u"eV")
