@@ -27,7 +27,8 @@ abstract type AndersonImpurityModel <: HokseonReproduce.Model end
 adsorbatepath = "adsorbates/"
 
 include(adsorbatepath * "BrandbygeAdsorbate.jl")
-export BrandbygeAdsorbate, AndersonImpurityModel
+include(adsorbatepath * "ErpenbeckThossAdsorbate.jl")
+export BrandbygeAdsorbate, ErpenbeckThossAdsorbate, AndersonImpurityModel
 
 
 end

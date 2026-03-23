@@ -1,5 +1,5 @@
 module MarkovianLambda
-import ..HokseonReproduce, ..DistributionTools
+import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel
 using ..DistributionTools: FermiDirac
 using ..AndersonImpurityModels: BrandbygeAdsorbate
 using QuadGK
@@ -24,14 +24,14 @@ function ∂fermi(ϵ, fermidirac::FermiDirac)
     return isnan(∂f) ? zero(ϵ) : ∂f
 end
 
-function widebandfriction(adsorbate_model::BrandbygeAdsorbate, r, fermidirac::FermiDirac)
+function widebandfriction(adsorbate_m::AndersonImpurityModel, r::Real, temperature::Real, fermi_level::Real=0.0)
 
     """
-    Wideband Markovian friction calculation based on Brandbyge et al. model
+    Wideband Markovian friction calculation based Gardner et al. 2023 https://doi.org/10.1063/5.0137137
 
     输入:
 
-    adsorbate_model : BrandbygeAdsorbate model containing parameters
+    adsorbate_model : AndersonImpurityModel containing parameters
     r               : Position of the adsorbate from substrate
     fermidirac     : FermiDirac distribution containing Fermi level and temperature
 
@@ -41,17 +41,20 @@ function widebandfriction(adsorbate_model::BrandbygeAdsorbate, r, fermidirac::Fe
     """
 
 
-    C, α, β, Δ₀, ε∞ = getfield.(Ref(adsorbate_model), (:C, :α, :β, :Δ₀, :ε∞))
+    fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    h = ε∞ .- C .* exp.(-α .* r)
-    Γ = Δ₀ .* exp.(-β .* r)
+    adsorbate_lorentizan = HokseonReproduce.DOS(r, adsorbate_m)
 
-    dhdx = α .* C .* exp.(-α .* r)
-    dΓdx = -β .* Δ₀ .* exp.(-β .* r)
+    h = adsorbate_lorentizan.ω0
+    Δ = adsorbate_lorentizan.Γ ## Eq. (11) in https://doi.org/10.1103/PhysRevB.52.6042
+    Γ = Δ * 2 ## Eq. (3) in https://doi.org/10.1063/5.0137137 
 
-    A(ϵ) = (1 / π) * (Γ ./ ((ϵ .- h).^2 .+ Γ.^2))
+    dhdx = HokseonReproduce.dϵₐ_dr(r, adsorbate_m)
+    dΓdx = HokseonReproduce.dΔ_dr(r, adsorbate_m) * 2
+
+    A(ϵ) = (1 / π) * ((Γ/2) ./ ((ϵ .- h).^2 .+ (Γ/2).^2)) ## Eq.(34) in https://doi.org/10.1063/5.0137137
     
-    kernel(ϵ) = -π * (dhdx + (ϵ .- h) .* dΓdx ./ Γ) .^ 2  .* A(ϵ).^2 * ∂fermi(ϵ, fermidirac)
+    kernel(ϵ) = -π * (dhdx + (ϵ .- h) .* dΓdx ./ Γ) .^ 2  .* A(ϵ).^2 * ∂fermi(ϵ, fermidirac) ## Eq. (33) in https://doi.org/10.1063/5.0137137
 
     integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 

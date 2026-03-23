@@ -27,6 +27,19 @@ function HokseonReproduce.DOS(r::Real, m::BrandbygeAdsorbate)
     return lorentzian
 end
 
+function HokseonReproduce.dϵₐ_dr(r::Real, m::BrandbygeAdsorbate)
+    """
+    Centre of the Lorentzian for the Brandbyge adsorbate model.
+    
+    r: distance from the impurity to the reservoir
+
+    m: BrandbygeAdorbateModel
+
+    return: dϵₐ/dr 
+    """
+    return m.α * m.C * exp(-m.α * r)
+end
+
 function HokseonReproduce.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
     """
     Broadening function for the Brandbyge adsorbate model.
