@@ -29,6 +29,34 @@ function DOS(r::Real, Δϵ::Real, m::Model)
     error("DOS function not implemented for this model type")
 end
 
+function ϵₐ(r::Real, ω::Real, m::Model)
+    error("ϵₐ function not implemented for this model type")
+end
+
+function Δ(r::Real, ω::Real, m::Model)
+    error("Δ function not implemented for this model type")
+end
+
+function adsorbate_h(r::Real,m::Model)
+    error("adsorbate_h function not implemented for this model type")
+end
+
+function adsorbate_diabatic(r::Real,m::Model)
+    error("adsorbate_diabatic function not implemented for this model type")
+end
+
+function dh_dr(r::Real,m::Model)
+    error("dh_dr function not implemented for this model type")
+end
+
+function coupling_V(r::Real,m::Model)
+    error("coupling_Vs function not implemented for this model type")
+end
+
+function dV_dr(r::Real,m::Model)
+    error("dV_dr function not implemented for this model type")
+end
+
 function PDF(ω::Real, d::Distribution)
     error("PDF function not implemented for this distribution type")
 end
@@ -41,11 +69,11 @@ function dϵₐ_dr(r::Real, d::Distribution)
     error("ϵₐ_dr function not implemented for this distribution type")
 end
 
-function dΔ_dr(r::Real, d::Distribution, energy::Real)
+function dΔ_dr(r::Real, energy::Real, d::Distribution)
     error("Δ_dr function not implemented for this distribution type")
 end
 
-function dϵₐ_dr(r::Real, d::Distribution, energy::Real)
+function dϵₐ_dr(r::Real, energy::Real, d::Distribution)
     error("ϵₐ_dr function not implemented for this distribution type")
 end
 
