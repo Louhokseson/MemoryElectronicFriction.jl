@@ -24,7 +24,7 @@ HokseonAssistant.julia_session();
 params_list = dict_list(Dict{String, Any}(
     "impuritymodel" => [:ErpenbeckThossAdsorbate],
     "centre" => [0],
-    "position" => [collect(1.0:0.001:5.0)],
+    "position" => [collect(2.0:0.001:2.05)],
     "temperature" => [300],
     "Γ" => [0.06],
 ))
@@ -67,20 +67,20 @@ end
 function plot_MarkovianLambda(params_list)
     ## Plotting set up
     fig = Figure(size=(HokseonPlots.RESOLUTION[1]*2, 3*HokseonPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))
-    ax = MyAxis(fig[1,1], xlabel="x / Å", ylabel= "Λ(x) / u⋅ps⁻¹",limits=(1.8, 2.3, -200000, 200000))
+    ax = MyAxis(fig[1,1], xlabel="x / Å", ylabel= "Λ(x) / u⋅ps⁻¹",limits=(2.0, 2.05, -200000, 200000))
 
-    bandwidth = 100
+    bandwidth = 400
     bandwidth_au = austrip.(bandwidth*u"eV")
     nstates = 1000
     for (i,params_dict) in enumerate(params_list)
-
+        @info "NQCD extrema"
         MarkovianFriction_NQCD_au = NQCD_MarkovianFriction(params_dict; nstates, bandwidth = bandwidth_au)
-
-        @info bandwidth_au * auconvert.(u"eV", 1)
 
         MarkovianFriction_NQCD = ustrip.(MarkovianFriction_NQCD_au .* auconvert.(u"u", 1) ./ auconvert.(u"ps",1))
 
         adsorbate_m, position_au, temperature_au = buildSystemBath(params_dict)
+
+        @info "HokseonRrepoduce A"
 
         Λ_au = MarkovianLambda.widebandfriction.(Ref(adsorbate_m), position_au, Ref(temperature_au))
 
@@ -97,8 +97,6 @@ function plot_MarkovianLambda(params_list)
         lines!(ax, x_Å, MarkovianFriction_NQCD .- Λ_ps⁻¹; color=:black, linewidth=2, linestyle=:dash, label = "Difference" )
 
         hlines!(ax, [-61639.41800270504]; color=:blue, linewidth=2, label = "-61639 eV" )
-
-        @info minimum(-Λ_ps⁻¹)
 
     end
     Legend(fig[1,1], ax, tellwidth=false, tellheight=false, valign=:top, halign=:right, margin=(5, 5, 5, 5), orientation=:vertical)
