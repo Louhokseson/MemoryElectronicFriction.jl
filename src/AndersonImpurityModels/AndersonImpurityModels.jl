@@ -11,6 +11,7 @@ module AndersonImpurityModels
 using ..HokseonReproduce: HokseonReproduce, DistributionTools 
 using NQCModels.BathDiscretisations: WideBandBathDiscretisation
 using Unitful,UnitfulAtomic
+using SpecialFunctions
 # we use the parent module's abstract type Model and the broadcastable function
 
 
@@ -32,7 +33,8 @@ adsorbatepath = "adsorbates/"
 
 include(adsorbatepath * "BrandbygeAdsorbate.jl")
 include(adsorbatepath * "ErpenbeckThossAdsorbate.jl")
-export BrandbygeAdsorbate, ErpenbeckThossAdsorbate
+include(adsorbatepath * "HGeAdsorbate.jl")
+export BrandbygeAdsorbate, ErpenbeckThossAdsorbate, HGeAdsorbate
 
 
 
