@@ -456,17 +456,15 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModel, position::Real ,tempe
     r = position
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    adsorbate_lorentizan = HokseonReproduce.DOS(r, adsorbate_m)
-
-    ϵₐ = adsorbate_lorentizan.ω0
-    Δ = adsorbate_lorentizan.Γ
+    h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
+    Δ = HokseonReproduce.Δ(r, adsorbate_m)
 
     dϵₐdx = HokseonReproduce.dϵₐ_dr(r, adsorbate_m)
     dΔdx = HokseonReproduce.dΔ_dr(r, adsorbate_m)
 
-    A(ϵ) =  2 .* Δ ./ ((ϵ .- ϵₐ).^2 .+ Δ.^2)
+    A(ϵ) =  2 .* Δ ./ ((ϵ .- h).^2 .+ Δ.^2)
 
-    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- ϵₐ) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- ϵₐ) .* dΔdx ./ Δ) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- h) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- h) .* dΔdx ./ Δ) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
     integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 
@@ -492,22 +490,80 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel, position::Real ,
     r = position
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    adsorbate_lorentizan(ω₁) = HokseonReproduce.DOS(r, adsorbate_m, ω₁)
+    ϵₐ(ω₁) = HokseonReproduce.ϵₐ(r, ω₁, adsorbate_m)
+    Δ(ω₁) = HokseonReproduce.Δ(r, ω₁, adsorbate_m)
 
-    ϵₐ(ω₁) = adsorbate_lorentizan(ω₁).ω0
-    Δ(ω₁) = adsorbate_lorentizan(ω₁).Γ
+    V = HokseonReproduce.coupling_V(r, adsorbate_m)
+    dVdr = HokseonReproduce.dV_dr(r, adsorbate_m)
+    dhdx = HokseonReproduce.dh_dr(r, adsorbate_m)
+    h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
 
-    dϵₐdx(ω₁) = HokseonReproduce.dϵₐ_dr(r, adsorbate_m, ω₁)
-    dΔdx(ω₁) = HokseonReproduce.dΔ_dr(r, adsorbate_m, ω₁)
+    Jₐ(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
 
-    A(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
+    kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ V .* dVdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ V .* dVdr) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
-    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx(ω₁) + (ω₁ .- ϵₐ(ω₁)) .* dΔdx(ω₁) ./ Δ(ω₁)) .* (dϵₐdx(ω₁) + (ω₁ .+ ω .- ϵₐ(ω₁)) .* dΔdx(ω₁) ./ Δ(ω₁)) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    ω₁_effective = ω₁_effective_range(fermidirac, ω)
 
-    integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
+    integral = quadgk(kernel,ω₁_effective[1], ω₁_effective[2]; rtol=1e-6)[1]
 
     return - integral ./ (ω * 4π)
 
+end
+
+
+function Lambda(energy_vec::AbstractVector, adsorbate_m::FrequencyDependentModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+    
+    # 1. Check available worker processes
+    avail_workers = workers()
+    # A robust check: if there is more than just the main process (PID 1)
+    has_workers = length(avail_workers) > 1 || (length(avail_workers) == 1 && avail_workers[1] != 1)
+    n_workers = length(avail_workers)
+
+    if has_workers
+        # ----------------------------------------------------
+        # 🚀 STRATEGY 1: MULTIPROCESSING (Hybrid Outer/Inner)
+        # ----------------------------------------------------
+
+        # Get the number of threads available to each worker (which is the same as the Master's setting)
+        threads_per_worker = Threads.nthreads()
+        
+        @info "Hybrid Parallelism: Distributing $(length(energy_vec)) energies across $n_workers worker processes, with $threads_per_worker threads per worker." 
+
+        # Define the work function. This closure captures all arguments (bath, model, etc.)
+        # and transfers them once per worker via pmap's internal mechanism.
+        worker_func(e) = Lambda(e, adsorbate_m, position, temperature, fermi_level)
+
+        # pmap distributes the work element-by-element. Each element executes Lambda(e),
+        # where cauchy_integral uses the worker's internal threads.
+
+        results_iterator = pmap(worker_func, energy_vec)
+        
+        return collect(results_iterator) # Collect the results into a single Vector
+
+    else
+        # -----------------------------------------------------------------
+        # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING (Original optimized code)
+        # -----------------------------------------------------------------
+        n_energy = length(energy_vec)
+        Lambda_au_vec = similar(energy_vec, Float64)
+
+        @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
+        
+        # 2. Precompile/Warm-up
+        @info "Precompiling a single energy point before multithreading..."
+        Lambda_au_vec[1] = Lambda(energy_vec[1], adsorbate_m, position, temperature, fermi_level)
+        @info "Precompilation done."
+
+        # 3. Threaded Loop (Outer parallelism). Inner integral will run serially.
+        @info "Starting multithreaded Λ(ω) calculation..."
+        Threads.@threads for i in 2:n_energy
+            e = energy_vec[i]
+            Lambda_au_vec[i] = Lambda(e, adsorbate_m, position, temperature, fermi_level)
+        end
+        @info "Λ(ω) calculation completed."
+
+        return Lambda_au_vec
+    end
 end
 
 
