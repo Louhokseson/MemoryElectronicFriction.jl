@@ -1,9 +1,8 @@
 module MarkovianLambda
 import ..HokseonReproduce, ..DistributionTools, ..AndersonImpurityModel
 using ..DistributionTools: FermiDirac
-using ..AndersonImpurityModels: BrandbygeAdsorbate
+using ..AndersonImpurityModels: BrandbygeAdsorbate, WideBandLimitModel, FrequencyDependentModel
 using QuadGK
-
 
 function ∂fermi(ϵ, fermidirac::FermiDirac)
     """
@@ -24,7 +23,7 @@ function ∂fermi(ϵ, fermidirac::FermiDirac)
     return isnan(∂f) ? zero(ϵ) : ∂f
 end
 
-function widebandfriction(adsorbate_m::AndersonImpurityModel, r::Real, temperature::Real, fermi_level::Real=0.0)
+function widebandfriction(adsorbate_m::WideBandLimitModel, r::Real, temperature::Real, fermi_level::Real=0.0)
 
     """
     Wideband Markovian friction calculation based Gardner et al. 2023 https://doi.org/10.1063/5.0137137
@@ -43,10 +42,8 @@ function widebandfriction(adsorbate_m::AndersonImpurityModel, r::Real, temperatu
 
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    adsorbate_lorentizan = HokseonReproduce.DOS(r, adsorbate_m)
-
-    h = adsorbate_lorentizan.ω0
-    Δ = adsorbate_lorentizan.Γ ## Eq. (11) in https://doi.org/10.1103/PhysRevB.52.6042
+    h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
+    Δ = HokseonReproduce.Δ(r, adsorbate_m) ## Eq. (11) in https://doi.org/10.1103/PhysRevB.52.6042
     Γ = Δ * 2 ## Eq. (3) in https://doi.org/10.1063/5.0137137 
 
     dhdx = HokseonReproduce.dϵₐ_dr(r, adsorbate_m)
@@ -56,7 +53,7 @@ function widebandfriction(adsorbate_m::AndersonImpurityModel, r::Real, temperatu
     
     kernel(ϵ) = -π * (dhdx + (ϵ .- h) .* dΓdx ./ Γ) .^ 2  .* A(ϵ).^2 * ∂fermi(ϵ, fermidirac) ## Eq. (33) in https://doi.org/10.1063/5.0137137
 
-    integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
+    integral,_ = quadgk(kernel, -Inf, Inf; rtol=1e-6)
 
     return integral
 end
