@@ -1,7 +1,9 @@
 module FrequencyLambda
 import ..HokseonReproduce, ..DistributionTools, ..WeightedEHPDOS
 using ..DistributionTools: FermiDirac
-using ..AndersonImpurityModels: WideBandLimitModel, FrequencyDependentModel, BrandbygeAdsorbate, AndersonImpurityModel
+using ..AndersonImpurityModels: WideBandLimitModel, WideBandLimitModel1DOF, WideBandLimitModelNDOF, FrequencyDependentModel, FrequencyDependentModel1DOF, BrandbygeAdsorbate, AndersonImpurityModel, AndersonImpurityModel1DOF, AndersonImpurityModelNDOF
+using StaticArrays: SVector
+using LinearAlgebra: Symmetric
 using QuadGK
 using Distributed # Needed for the pmap/workers logic
 using FLoops
@@ -439,7 +441,7 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
 end
 
 
-function Lambda(ω::Real, adsorbate_m::WideBandLimitModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+function Lambda(ω::Real, adsorbate_m::WideBandLimitModel1DOF, position::Real ,temperature::Real, fermi_level::Real=0.0)
 
     """
 
@@ -472,8 +474,58 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModel, position::Real ,tempe
 
 end
 
+# Kernel for the (k,l) + (l,k) symmetrised integrand.
+# Scalars dh_k, dh_l, dΔ_k, dΔ_l are the k-th and l-th components of the
+# gradient vectors — passed as scalars to avoid per-quadgk-call allocation.
+function Lambdaₖₗₗₖ(ω₁::Real, ω::Real, h::Real, Δ::Real,
+                     dh_k::Real, dh_l::Real, dΔ_k::Real, dΔ_l::Real,
+                     fermidirac::FermiDirac)
+    Jₐ(ϵ) = 2Δ / ((ϵ - h)^2 + Δ^2)
 
-function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+    Fₖ(ω̃) = dh_k + (ω̃ - h) * dΔ_k / Δ
+    Fₗ(ω̃) = dh_l + (ω̃ - h) * dΔ_l / Δ
+
+    Δf = HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)
+
+    return Jₐ(ω₁) * Jₐ(ω + ω₁) * (Fₖ(ω₁) * Fₗ(ω₁ + ω) + Fₗ(ω₁) * Fₖ(ω₁ + ω)) * Δf / 4π
+end
+
+function Lambda(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SVector, temperature::Real, fermi_level::Real=0.0)
+
+    """
+        
+        Frequency-dependent friction calculation based on Anderson impurity model parameters
+    
+        输入:
+        ω : 能量值 度量能量尺度
+        configuration : adsorbate 的物理位置
+        temperature : 电子温度
+        fermi_level : 费米能级
+    """
+
+    ndof = adsorbate_m.ndof
+    Lambda_mat = zeros(ndof, ndof)
+
+    fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
+    h = HokseonReproduce.adsorbate_h(configuration, adsorbate_m)
+    Δ = HokseonReproduce.Δ(configuration, adsorbate_m)
+
+    dhdx_vec = HokseonReproduce.dh_dx(configuration, adsorbate_m)
+    dΔdx_vec = HokseonReproduce.dΔ_dx(configuration, adsorbate_m)
+
+    for k in 1:ndof
+        for l in k:ndof
+            Lambda_mat[k, l] = quadgk(
+                ω₁ -> Lambdaₖₗₗₖ(ω₁, ω, h, Δ, dhdx_vec[k], dhdx_vec[l], dΔdx_vec[k], dΔdx_vec[l], fermidirac),
+                -Inf, Inf; rtol=1e-6)[1]
+        end
+    end
+
+    return Symmetric(Lambda_mat) ./ (ω * -2)
+end
+
+
+function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Real ,temperature::Real, fermi_level::Real=0.0)
 
     """
 
@@ -493,25 +545,67 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel, position::Real ,
     ϵₐ(ω₁) = HokseonReproduce.ϵₐ(r, ω₁, adsorbate_m)
     Δ(ω₁) = HokseonReproduce.Δ(r, ω₁, adsorbate_m)
 
-    V = HokseonReproduce.coupling_V(r, adsorbate_m)
-    dVdr = HokseonReproduce.dV_dr(r, adsorbate_m)
+    A = HokseonReproduce.coupling_A(r, adsorbate_m)
+    dAdr = HokseonReproduce.dA_dr(r, adsorbate_m)
     dhdx = HokseonReproduce.dh_dr(r, adsorbate_m)
     h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
 
     Jₐ(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
 
-    kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ V .* dVdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ V .* dVdr) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ A .* dAdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ A .* dAdr) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
 
     ω₁_effective = ω₁_effective_range(fermidirac, ω)
 
-    integral = quadgk(kernel,ω₁_effective[1], ω₁_effective[2]; rtol=1e-6)[1]
+    #integral = quadgk(kernel,ω₁_effective[1], ω₁_effective[2]; rtol=1e-6)[1]
+    integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 
     return - integral ./ (ω * 4π)
 
 end
 
 
-function Lambda(energy_vec::AbstractVector, adsorbate_m::FrequencyDependentModel, position::Real ,temperature::Real, fermi_level::Real=0.0)
+function Lambda(energy_vec::AbstractVector, adsorbate_m::WideBandLimitModelNDOF, configuration::SVector, temperature::Real, fermi_level::Real=0.0)
+
+    # 1. Check available worker processes
+    avail_workers = workers()
+    has_workers = length(avail_workers) > 1 || (length(avail_workers) == 1 && avail_workers[1] != 1)
+    n_workers = length(avail_workers)
+
+    if has_workers
+        # ----------------------------------------------------
+        # 🚀 STRATEGY 1: MULTIPROCESSING (Hybrid Outer/Inner)
+        # ----------------------------------------------------
+        threads_per_worker = Threads.nthreads()
+        @info "Hybrid Parallelism: Distributing $(length(energy_vec)) energies across $n_workers worker processes, with $threads_per_worker threads per worker."
+
+        worker_func(e) = Lambda(e, adsorbate_m, configuration, temperature, fermi_level)
+        results_iterator = pmap(worker_func, energy_vec)
+        return collect(results_iterator)  # Vector{Matrix{Float64}}
+
+    else
+        # -----------------------------------------------------------------
+        # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING
+        # -----------------------------------------------------------------
+        n_energy = length(energy_vec)
+
+        @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
+
+        # Infer return type (Matrix{Float64}) from first call
+        R = typeof(Lambda(energy_vec[1], adsorbate_m, configuration, temperature, fermi_level))
+        Lambda_mat_vec = Vector{R}(undef, n_energy)
+
+        @info "Starting multithreaded Λ(ω) matrix calculation..."
+        Threads.@threads for i in 1:n_energy
+            Lambda_mat_vec[i] = Lambda(energy_vec[i], adsorbate_m, configuration, temperature, fermi_level)
+        end
+        @info "Λ(ω) matrix calculation completed."
+
+        return Lambda_mat_vec  # Vector{Matrix{Float64}}
+    end
+end
+
+
+function Lambda(energy_vec::AbstractVector, adsorbate_m::AndersonImpurityModel1DOF, position::Real ,temperature::Real, fermi_level::Real=0.0)
     
     # 1. Check available worker processes
     avail_workers = workers()
@@ -545,20 +639,16 @@ function Lambda(energy_vec::AbstractVector, adsorbate_m::FrequencyDependentModel
         # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING (Original optimized code)
         # -----------------------------------------------------------------
         n_energy = length(energy_vec)
-        Lambda_au_vec = similar(energy_vec, Float64)
 
         @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
-        
-        # 2. Precompile/Warm-up
-        @info "Precompiling a single energy point before multithreading..."
-        Lambda_au_vec[1] = Lambda(energy_vec[1], adsorbate_m, position, temperature, fermi_level)
-        @info "Precompilation done."
 
-        # 3. Threaded Loop (Outer parallelism). Inner integral will run serially.
+        # Infer return type from first call, then fill all n_energy points in parallel
+        R = typeof(Lambda(energy_vec[1], adsorbate_m, position, temperature, fermi_level))
+        Lambda_au_vec = Vector{R}(undef, n_energy)
+
         @info "Starting multithreaded Λ(ω) calculation..."
-        Threads.@threads for i in 2:n_energy
-            e = energy_vec[i]
-            Lambda_au_vec[i] = Lambda(e, adsorbate_m, position, temperature, fermi_level)
+        Threads.@threads for i in 1:n_energy
+            Lambda_au_vec[i] = Lambda(energy_vec[i], adsorbate_m, position, temperature, fermi_level)
         end
         @info "Λ(ω) calculation completed."
 

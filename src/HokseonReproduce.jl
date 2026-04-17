@@ -49,12 +49,16 @@ function dh_dr(r::Real,m::Model)
     error("dh_dr function not implemented for this model type")
 end
 
-function coupling_V(r::Real,m::Model)
-    error("coupling_Vs function not implemented for this model type")
+function dh_dx(r::Real,m::Model)
+    error("dh_dx function not implemented for this model type")
 end
 
-function dV_dr(r::Real,m::Model)
-    error("dV_dr function not implemented for this model type")
+function coupling_A(r::Real,m::Model)
+    error("coupling_A function not implemented for this model type")
+end
+
+function dA_dr(r::Real,m::Model)
+    error("dA_dr function not implemented for this model type")
 end
 
 function PDF(ω::Real, d::Distribution)
@@ -63,6 +67,10 @@ end
 
 function dΔ_dr(r::Real, d::Distribution)
     error("Δ_dr function not implemented for this distribution type")
+end
+
+function dΔ_dx(r::Real, d::Distribution)
+    error("Δ_dx function not implemented for this distribution type")
 end
 
 function dϵₐ_dr(r::Real, d::Distribution)
