@@ -37,24 +37,32 @@ NQCModels.ndofs(m::BOAdiabaticModel) = NQCModels.ndofs(m.quantum_model)
 
 function NQCModels.potential(m::BOAdiabaticModel, r::AbstractMatrix)
     V = NQCModels.potential(m.quantum_model, r)
-    return eigen(V).values[m.state]
+    eig = eigen(V)
+    return eig.values[sortperm(eig.values)][m.state]
 end
 
 function NQCModels.derivative!(m::BOAdiabaticModel, output::AbstractMatrix, r::AbstractMatrix)
     V = NQCModels.potential(m.quantum_model, r)
-    U = eigen(V).vectors
+
+    eig = eigen(V)
+    perm = sortperm(eig.values)
+
+    U = eig.vectors[:, perm]
+
     D = NQCModels.zero_derivative(m.quantum_model, r)
     NQCModels.derivative!(m.quantum_model, D, r)
+
     for I in eachindex(output, D)
         output[I] = (U' * D[I] * U)[m.state, m.state]
     end
+
     return output
 end
 
 function run_BO_dynamics(quantum_model, atoms, r0, v0;
-                         state::Int = 1,
+                         state::Int = 2,
                          tspan      = (0.0, austrip(500u"fs")),
-                         dt         = austrip(0.1u"fs"))
+                         dt         = austrip(0.01u"fs"))
 
     bo_model = BOAdiabaticModel(quantum_model, state)
     sim      = Simulation(atoms, bo_model)
@@ -78,16 +86,16 @@ terminate = DynamicsUtils.TerminatingCallback(termination_condition)
 # -----------------------------------------------------------------------------
 
 function run_erpenbeck_thoss()
-    model = NQCModels.ErpenbeckThoss(Γ = austrip(0.06u"eV"))
-    atoms = Atoms(1u"u")
+    model = NQCModels.ErpenbeckThoss(Γ = austrip(0.0u"eV"))
+    atoms = Atoms(10.54u"u")
 
     # Start slightly displaced from the Morse minimum (x₀ = 1.78 Å) at rest.
-    r0 = fill(austrip(2.0u"Å"), 1, 1)
+    r0 = fill(austrip(1.4u"Å"), 1, 1)
     v0 = zeros(1, 1)
 
     return run_BO_dynamics(model, atoms, r0, v0;
                            tspan = (0.0, austrip(200u"fs")),
-                           dt    = austrip(0.1u"fs"))
+                           dt    = austrip(0.01u"fs"))
 end
 
 # -----------------------------------------------------------------------------
@@ -113,7 +121,7 @@ function run_pogo()
 
     return run_BO_dynamics(model, atoms, r0, v0;
                            tspan = (0.0, austrip(500u"fs")),
-                           dt    = austrip(0.1u"fs"))
+                           dt    = austrip(0.01u"fs"))
 end
 
 # -----------------------------------------------------------------------------
@@ -123,20 +131,20 @@ end
 function plot_trajectories(traj_et, traj_pogo)
     t_et = ustrip.(auconvert.(u"fs", traj_et[:Time]))
     r_et = [ustrip(auconvert(u"Å", R[1, 1])) for R in traj_et[:OutputPosition]]
-    E_et = ustrip.(auconvert.(u"eV", traj_et[:OutputTotalEnergy]))
+    E_et = ustrip.(auconvert.(u"eV", traj_et[:OutputKineticEnergy]))
 
     t_pg = ustrip.(auconvert.(u"fs", traj_pogo[:Time]))
     r_pg = [ustrip(auconvert(u"Å", R[1, 1])) for R in traj_pogo[:OutputPosition]]
     z_pg = [ustrip(auconvert(u"Å", R[2, 1])) for R in traj_pogo[:OutputPosition]]
-    E_pg = ustrip.(auconvert.(u"eV", traj_pogo[:OutputTotalEnergy]))
+    E_pg = ustrip.(auconvert.(u"eV", traj_pogo[:OutputKineticEnergy]))
 
     fig = Figure(size = (HokseonPlots.RESOLUTION[1]*3, 3*HokseonPlots.RESOLUTION[2]))
 
-    ax1 = Axis(fig[1, 1]; xlabel = "t / fs", ylabel = "r / Å",
+    ax1 = Axis(fig[1, 1]; xlabel = "t / fs", ylabel = "z / Å",
                  title = "ErpenbeckThoss BO-MD")
     lines!(ax1, t_et, r_et; linewidth = 2)
 
-    ax2 = Axis(fig[1, 2]; xlabel = "t / fs", ylabel = "E_total / eV",
+    ax2 = Axis(fig[1, 2]; xlabel = "t / fs", ylabel = "E_kin / eV",
                  title = "ErpenbeckThoss energy")
     lines!(ax2, t_et, E_et; linewidth = 2)
 
@@ -146,7 +154,7 @@ function plot_trajectories(traj_et, traj_pogo)
     lines!(ax3, t_pg, z_pg; linewidth = 2, label = "z (surface)")
     axislegend(ax3; position = :rt)
 
-    ax4 = Axis(fig[2, 2]; xlabel = "t / fs", ylabel = "E_total / eV",
+    ax4 = Axis(fig[2, 2]; xlabel = "t / fs", ylabel = "E_kin / eV",
                  title = "POGOModel energy")
     lines!(ax4, t_pg, E_pg; linewidth = 2)
 
