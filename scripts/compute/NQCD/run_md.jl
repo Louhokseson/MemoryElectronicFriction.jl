@@ -8,7 +8,9 @@ end
 
 using NQCModels
 using NQCDynamics
+using NQCDynamics.InitialConditions: QuantisedDiatomic
 using LinearAlgebra: eigen
+using Random
 using Unitful, UnitfulAtomic
 using HokseonAssistant
 HokseonAssistant.julia_build_procs()
@@ -46,23 +48,34 @@ function NQCModels.derivative!(m::BOAdiabaticModel, output::AbstractMatrix, r::A
     return output
 end
 
-# `state` is deliberately untyped so the @unpack of an Any-valued dict entry
-# doesn't trip the linter; BOAdiabaticModel converts it at construction.
-function run_BO_dynamics(quantum_model, atoms, r0, v0, full_data_path;
-                         state     = 2,
-                         tspan     = (0.0, austrip(500u"fs")),
-                         dt        = austrip(0.01u"fs"),
-                         terminate = (u, t, _) -> false)
+# 1-DOF slice of a 2-DOF (r, z) BO surface at fixed z. Used by
+# QuantisedDiatomic.generate_1D_vibrations to build the bond binding curve:
+# the EBK routine expects a ClassicalModel whose `potential` takes a 1x1
+# matrix of bond lengths.
+struct FrozenHeightBO{M<:NQCModels.ClassicalModels.ClassicalModel} <: NQCModels.ClassicalModels.ClassicalModel
+    model2d::M
+    z::Float64
+end
 
-    bo_model = BOAdiabaticModel(quantum_model, state)
-    sim      = Simulation(atoms, bo_model)
-    dist     = DynamicalDistribution(v0, r0, size(r0))
+NQCModels.ndofs(::FrozenHeightBO) = 1
+
+function NQCModels.potential(m::FrozenHeightBO, r::AbstractMatrix)
+    return NQCModels.potential(m.model2d, reshape([r[1, 1], m.z], 2, 1))
+end
+
+function run_BO_dynamics(bo_model, atoms, dist, full_data_path;
+                         tspan        = (0.0, austrip(500u"fs")),
+                         dt           = austrip(0.01u"fs"),
+                         terminate    = (u, t, _) -> false,
+                         trajectories = 1)
+
+    sim = Simulation{Classical}(atoms, bo_model)
 
     return run_dynamics(sim, tspan, dist; dt,
         callback = DynamicsUtils.TerminatingCallback(terminate),
         output = (OutputPosition, OutputVelocity,
                   OutputKineticEnergy, OutputPotentialEnergy, OutputTotalEnergy),
-        trajectories = 1,
+        trajectories,
         reduction    = FileReduction(full_data_path))
 end
 
@@ -75,38 +88,70 @@ function run_erpenbeck_thoss(params, full_data_path)
     r0_mat = reshape(austrip.(r0), length(r0), 1)
     # 1 DOF: send the bond coordinate inward (-r) with all the incident KE.
     v0     = fill(-sqrt(2 * austrip(translational_kinetic) / m), 1, 1)
-    model  = NQCModels.ErpenbeckThoss(; Γ = austrip(Γ))
+    dist   = DynamicalDistribution(v0, r0_mat, size(r0_mat))
+
+    quantum_model = NQCModels.ErpenbeckThoss(; Γ = austrip(Γ))
+    bo_model      = BOAdiabaticModel(quantum_model, state)
 
     t_min  = austrip(termination_min_time)
     thresh = austrip(termination_threshold)
     terminate = (u, t, _) -> t > t_min &&
                              DynamicsUtils.get_positions(u)[termination_coord_idx, 1] > thresh
 
-    return run_BO_dynamics(model, atoms, r0_mat, v0, full_data_path;
-                           state, tspan = (0.0, austrip(tmax)),
+    return run_BO_dynamics(bo_model, atoms, dist, full_data_path;
+                           tspan = (0.0, austrip(tmax)),
                            dt = austrip(dt), terminate)
 end
 
-function run_pogo(params, full_data_path)
-    @unpack mass, Γ, r0, translational_kinetic, state, tmax, dt,
-            termination_min_time, termination_coord_idx, termination_threshold = params
+# Translation is deterministic: fixed z0, fixed ż chosen so NQCDynamics'
+# KE(z-DOF) = 0.5 * atoms.masses[1] * ż² matches `translational_kinetic`.
+# (POGO is a 1-atom/2-DOF model so atoms.masses has length 1 and the same
+# mass backs both the bond and the z-DOF in KE bookkeeping.)
+# The bond DOF is either frozen at r0[1] with zero radial velocity
+# (vibrational_state === nothing) or EBK-sampled at quantum number ν
+# (Integer). Seed keyed off (ν, E_trans, N) so equivalent configs reproduce.
+function noau_initial_distribution(bo_model, atoms, params; trajectories=1)
+    @unpack r0, translational_kinetic, vibrational_state = params
 
-    atoms  = Atoms(mass)
-    m      = atoms.masses[1]
-    r0_mat = reshape(austrip.(r0), length(r0), 1)
-    # 2 DOFs (r, z): put all KE into incoming z-motion (toward surface, -z).
-    v0        = zeros(2, 1)
-    v0[2, 1]  = -sqrt(2 * austrip(translational_kinetic) / m)
-    model     = POGOModel(; Γ = austrip(Γ))
+    r_bond0 = austrip(r0[1])
+    z0      = austrip(r0[2])
+    μ_bond  = atoms.masses[1]        # bond reduced mass; also drives z-DOF KE
+    ż       = -sqrt(2 * austrip(translational_kinetic) / μ_bond)
+
+    if vibrational_state === nothing
+        v_samples = [reshape([0.0, ż],      2, 1) for _ in 1:trajectories]
+        r_samples = [reshape([r_bond0, z0], 2, 1) for _ in 1:trajectories]
+    else
+        ν = Int(vibrational_state)
+        Random.seed!(hash((ν, austrip(translational_kinetic), trajectories)))
+        model1d = FrozenHeightBO(bo_model, z0)
+        bonds, bond_vs = QuantisedDiatomic.generate_1D_vibrations(
+            model1d, μ_bond, ν; samples=trajectories)
+        v_samples = [reshape([bond_vs[k], ż], 2, 1) for k in 1:trajectories]
+        r_samples = [reshape([bonds[k],   z0], 2, 1) for k in 1:trajectories]
+    end
+
+    return DynamicalDistribution(v_samples, r_samples, (2, 1))
+end
+
+function run_NOAu(params, full_data_path)
+    @unpack mass, r0, translational_kinetic, state, tmax, dt,
+            termination_min_time, termination_coord_idx, termination_threshold,
+            trajectories = params
+
+    atoms         = Atoms(mass)
+    quantum_model = POGOModel()
+    bo_model      = BOAdiabaticModel(quantum_model, state)
+    dist          = noau_initial_distribution(bo_model, atoms, params; trajectories)
 
     t_min  = austrip(termination_min_time)
     thresh = austrip(termination_threshold)
     terminate = (u, t, _) -> t > t_min &&
                              DynamicsUtils.get_positions(u)[termination_coord_idx, 1] > thresh
 
-    return run_BO_dynamics(model, atoms, r0_mat, v0, full_data_path;
-                           state, tspan = (0.0, austrip(tmax)),
-                           dt = austrip(dt), terminate)
+    return run_BO_dynamics(bo_model, atoms, dist, full_data_path;
+                           tspan = (0.0, austrip(tmax)),
+                           dt = austrip(dt), terminate, trajectories)
 end
 
 # -----------------------------------------------------------------------------
@@ -120,6 +165,7 @@ _savename_value(v::Unitful.Quantity) = ustrip(v)
 _savename_value(v::AbstractVector{<:Unitful.Quantity}) =
     length(v) == 1 ? ustrip(v[1]) : join(string.(ustrip.(v)), "-")
 _savename_value(v::AbstractVector) = length(v) == 1 ? v[1] : v
+_savename_value(::Nothing) = "off"
 _savename_value(v) = v
 
 function _sanitize_for_savename(param_dict::Dict{String,Any})
@@ -139,8 +185,8 @@ end
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
-    "Γ"                     => [0.0u"eV"],
-    "r0"                    => [[5.0u"Å"]],              # 1 DOF: bond length
+    "Γ"                     => [0.25u"eV"],
+    "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
     "translational_kinetic" => [3.0u"eV"],
     "state"                 => [1],
     "tmax"                  => [200.0u"fs"],
@@ -151,19 +197,23 @@ all_params_et = Dict{String, Any}(
 )
 params_list_et = dict_list(all_params_et)
 
-all_params_pogo = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],
-    "Γ"                     => [1.5u"eV"],
-    "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z)
+all_params_NOAu = Dict{String, Any}(
+    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+#    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
+    "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
     "translational_kinetic" => [1.0u"eV"],
     "state"                 => [1],
     "tmax"                  => [500.0u"fs"],
-    "dt"                    => [0.01u"fs"],
+    "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],                       # check z
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
+    # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
+    # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
+    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1],
 )
-params_list_pogo = dict_list(all_params_pogo)
+params_list_NOAu = dict_list(all_params_NOAu)
 
 # -----------------------------------------------------------------------------
 # Sweep runner. Skips configs whose .h5 already exists; flip
@@ -193,4 +243,4 @@ function run_sweep!(runner, params_list, model_folder)
 end
 
 run_sweep!(run_erpenbeck_thoss, params_list_et,   "ErpenbeckThoss")
-run_sweep!(run_pogo,            params_list_pogo, "NOAu")
+run_sweep!(run_NOAu,            params_list_NOAu, "NOAu")
