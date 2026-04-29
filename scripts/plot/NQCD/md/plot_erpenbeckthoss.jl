@@ -51,15 +51,15 @@ end
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
-    "Γ"                     => [0.0u"eV"],
-    "r0"                    => [[5.0u"Å"]],
+    "Γ"                     => [0.25u"eV"],
+    "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
     "translational_kinetic" => [3.0u"eV"],
     "state"                 => [1],
     "tmax"                  => [200.0u"fs"],
     "dt"                    => [0.01u"fs"],
     "termination_min_time"  => [10.0u"fs"],
-    "termination_coord_idx" => [1],
-    "termination_threshold" => [5.0u"Å"],
+    "termination_coord_idx" => [1],                       # check r
+    "termination_threshold" => [5.0u"Å"],                 # dissociation threshold
 )
 params_list_et = dict_list(all_params_et)
 

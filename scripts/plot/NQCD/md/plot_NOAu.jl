@@ -20,6 +20,7 @@ _savename_value(v::Unitful.Quantity) = ustrip(v)
 _savename_value(v::AbstractVector{<:Unitful.Quantity}) =
     length(v) == 1 ? ustrip(v[1]) : join(string.(ustrip.(v)), "-")
 _savename_value(v::AbstractVector) = length(v) == 1 ? v[1] : v
+_savename_value(::Nothing) = "off"
 _savename_value(v) = v
 
 function _sanitize_for_savename(param_dict::Dict{String,Any})
@@ -50,16 +51,20 @@ end
 # -----------------------------------------------------------------------------
 
 all_params_NOAu = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],
-    "Γ"                     => [1.5u"eV"],
-    "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z)
+    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+#    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
+    "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
     "translational_kinetic" => [1.0u"eV"],
     "state"                 => [1],
     "tmax"                  => [500.0u"fs"],
-    "dt"                    => [0.01u"fs"],
+    "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],                       # check z
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
+    # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
+    # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
+    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
@@ -97,7 +102,7 @@ function plot_NOAu(params)
     ax2 = Axis(fig[1, 2];
                xlabel = "t / fs", 
                yaxisposition = :right, 
-               ylabel = "Translational Energy / eV",
+               ylabel = "Kinetic Energy / eV",
                ylabelcolor = :blue, # Optional: color-code label
                yticklabelcolor = :blue,
                xgridvisible = false, # Removes vertical grid lines
@@ -114,13 +119,15 @@ function plot_NOAu(params)
     # Link the x-axes so zooming/panning stays synchronized
     #linkxaxes!(ax1, ax2)
 
-    Label(fig[1,1], "BO-MD\nNOAu\nΓ = $(ustrip(params["Γ"])) eV"; tellwidth=false, tellheight=false, valign=:center, halign=:right, padding=(10,10,10,10),fontsize=16)
+    Label(fig[1,1], "BO-MD\nNOAu\nΓ = 1.5 eV\n ν = $(get(params, "vibrational_state", nothing))"; tellwidth=false, tellheight=false, valign=:center, halign=:right, padding=(10,10,10,10),fontsize=16)
 
     Legend(fig[1,1], ax1; tellwidth=false, tellheight=false, valign=:top, halign=:center, margin=(5,5,5,5))
 
     return fig
 end
 
-fig = plot_NOAu(params_list_NOAu[1])
-#save(projectdir("plots", "md", "NOAu.pdf"), fig)
-display(fig)
+for params in params_list_NOAu
+    fig = plot_NOAu(params)
+    #save(projectdir("plots", "md", "NOAu_ν=$(get(params, "vibrational_state", "frozen")).pdf"), fig)
+    display(fig)
+end
