@@ -1,11 +1,7 @@
 using DrWatson
 @quickactivate "HokseonReproduce"
 
-# making sure that HokseonReproduce module is loaded only once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
-end
+using HokseonReproduce
 
 # Plotting packages
 using CairoMakie
