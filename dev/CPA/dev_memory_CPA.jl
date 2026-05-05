@@ -20,9 +20,6 @@ HokseonAssistant.julia_build_procs()
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 
-# Shared with run_md.jl: dict_to_data_savename, load_md_trajectories.
-# Now part of HokseonReproduce.IO — available via `using HokseonReproduce`.
-
 # ---------------------------------------------------------------------------
 # Energy-loss engine (helpers + delta_energy).  Kept in a separate file so
 # other driver scripts can reuse it without copying code.
@@ -61,7 +58,7 @@ all_params_NOAu = Dict{String, Any}(
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
     # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
     # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
-    "vibrational_state"     => [3],                 # try [nothing, 0, 3, 16]
+    "vibrational_state"     => [0,3],                 # try [nothing, 0, 3, 16]
     "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
@@ -87,23 +84,12 @@ params_list_NOAu = dict_list(all_params_NOAu)
 et_trajs   = [load_md_trajectories(p, "ErpenbeckThoss") for p in params_list_et]
 noau_trajs = [load_md_trajectories(p, "NOAu")           for p in params_list_NOAu]
 
-#= function summarize(label, sweep)
-    @info "$label: $(length(sweep)) param config(s)"
-    for (i, trajs) in enumerate(sweep)
-        d  = isempty(trajs) ? 0 : ndofs(first(trajs))
-        Ns = [length(t.t) for t in trajs]
-        @info "  config $i" n_traj=length(trajs) DOF=d Nt_min=minimum(Ns; init=0) Nt_max=maximum(Ns; init=0)
-    end
-end
-
-summarize("ErpenbeckThoss", et_trajs)
-summarize("NOAu",           noau_trajs) =#
 
 # ---------------------------------------------------------------------------
 # DeltaE configuration — one dict per model, independent from MD params.
 # ---------------------------------------------------------------------------
 
-const delta_config_et = Dict{String, Any}(
+const CPA_config_et = Dict{String, Any}(
     "model"          => :ErpenbeckThoss,
     "T_K"            => 300,
     "ω"              => collect(0.01:0.01:20.0),   # will be austrip'd inside
@@ -112,7 +98,7 @@ const delta_config_et = Dict{String, Any}(
     "kernel_average" => :arithmetic,                        # :arithmetic | :geometric
 )
 
-const delta_config_noau = Dict{String, Any}(
+const CPA_config_noau = Dict{String, Any}(
     "model"          => :NOAu,
     "T_K"            => 300,
     "ω"              => collect(0.01:0.01:20.0),
@@ -122,18 +108,26 @@ const delta_config_noau = Dict{String, Any}(
 )
 
 # ---------------------------------------------------------------------------
-# Run ΔE for a single (delta_config, params_list, trajs_list) triplet.
+# Run ΔE for a single (CPA_config, params_list, trajs_list) triplet.
 # ---------------------------------------------------------------------------
 
-function run_CPA_delta_energy(delta_config, params_list, trajs_list)
+function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
 
-    @unpack model, T_K, ω, stride, parallel, kernel_average = delta_config
+    @unpack model, T_K, ω, stride, parallel, kernel_average = CPA_config
 
     T_au = austrip(T_K * u"K")
     ω_au = austrip.(ω * u"eV")
 
 
     for (p, trajs) in zip(params_list, trajs_list)
+        savingpath, savingname = CPA_dict_to_data_savename(p, CPA_config)
+        full_data_path = datadir(savingpath, savingname)
+
+        if isfile(full_data_path)
+            @info "Skipping (already saved)" full_data_path
+            continue
+        end
+
         ads   = build_adsorbate(Val(model), p)
         Δt_au = austrip(p["dt"])
         ΔE_au_vec = Vector{Float64}(undef, length(trajs))
@@ -142,8 +136,14 @@ function run_CPA_delta_energy(delta_config, params_list, trajs_list)
                                  ω_au=ω_au, T_au=T_au,
                                  stride=stride, parallel=parallel,
                                  kernel_average=kernel_average)
-            @info "ΔE done" model=model config=i stride parallel kernel_average T_K=delta_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
+            @info "ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
         end
+
+        # Save ΔE_au_vec as a 1-D dataset in HDF5.
+        h5open(full_data_path, "w") do fid
+            fid["DeltaE_au"] = ΔE_au_vec
+        end
+        @info "Saved ΔE" full_data_path n_traj=length(ΔE_au_vec)
     end
 end
 
@@ -151,5 +151,5 @@ end
 # Line up ET and NOAu demos.
 # ---------------------------------------------------------------------------
 
-#run_CPA_delta_energy(delta_config_et,   params_list_et,   et_trajs)
-run_CPA_delta_energy(delta_config_noau, params_list_NOAu, noau_trajs)
+#run_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
+run_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)
