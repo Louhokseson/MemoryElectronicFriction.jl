@@ -1,13 +1,9 @@
-using DrWatson
-using HDF5
-using Unitful
-
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Filename construction. Mirrors HonGeAnalysis' dict_to_data_savename but
 # simpler: no distributed job IDs, no method key. `savename` gets a sanitized
 # copy of the param dict so Unitful quantities and 1-element vectors collapse
 # to plain numbers in the filename.
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 _savename_value(v::Unitful.Quantity) = ustrip(v)
 _savename_value(v::AbstractVector{<:Unitful.Quantity}) =
@@ -27,7 +23,7 @@ function dict_to_data_savename(param_dict::Dict{String,Any}, model_folder::Abstr
     return (savingpath, savingname)
 end
 
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Trajectory loading. NQCDynamics' FileReduction lays each .h5 file out as
 #   trajectory_<i>/Time            (Nt_i,)
 #                 /OutputPosition  (D, 1, Nt_i)
@@ -43,7 +39,7 @@ end
 # only those, or add energies. The singleton "atoms" axis is squeezed for 3D
 # arrays (so position/velocity come back as D × Nt) and 1D arrays (energies)
 # pass through unchanged.
-# -----------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 
 const _DEFAULT_OUTPUTS = (:OutputPosition, :OutputVelocity)
 

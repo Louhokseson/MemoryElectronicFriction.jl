@@ -154,10 +154,9 @@ function run_NOAu(params, full_data_path)
                            dt = austrip(dt), terminate, trajectories)
 end
 
-# Save paths (`dict_to_data_savename`) and the trajectory loader live in a
-# shared file so dev/analysis scripts can read what this script writes
-# without duplicating the savename logic.
-include(joinpath(@__DIR__, "md_io.jl"))
+# Save paths (`dict_to_data_savename`) and the trajectory loader are now
+# part of HokseonReproduce.IO and re-exported from the top-level module.
+# No local include needed — they are available via `using HokseonReproduce`.
 
 # -----------------------------------------------------------------------------
 # Parameter sweeps
