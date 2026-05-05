@@ -59,7 +59,7 @@ end
 
 
 params_list = dict_list(Dict{String, Any}(
-    "r"           => [3.6],                          # N–O bond length / Å
+    "r"           => [1.6],                          # N–O bond length / Å
     "z"           => [1.6],                          # molecule–surface distance / Å
     "temperature" => [2500, 500, 1],
 
