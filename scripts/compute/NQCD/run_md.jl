@@ -154,30 +154,10 @@ function run_NOAu(params, full_data_path)
                            dt = austrip(dt), terminate, trajectories)
 end
 
-# -----------------------------------------------------------------------------
-# Save paths. Mirrors HonGeAnalysis' dict_to_data_savename but simpler:
-# no distributed job IDs, no method key — BO is one method, and the model folder
-# is passed explicitly. `savename` is fed a sanitized copy of params so Unitful
-# quantities and 1-element vectors collapse to plain numbers for the filename.
-# -----------------------------------------------------------------------------
-
-_savename_value(v::Unitful.Quantity) = ustrip(v)
-_savename_value(v::AbstractVector{<:Unitful.Quantity}) =
-    length(v) == 1 ? ustrip(v[1]) : join(string.(ustrip.(v)), "-")
-_savename_value(v::AbstractVector) = length(v) == 1 ? v[1] : v
-_savename_value(::Nothing) = "off"
-_savename_value(v) = v
-
-function _sanitize_for_savename(param_dict::Dict{String,Any})
-    Dict{String,Any}(k => _savename_value(v) for (k, v) in param_dict)
-end
-
-function dict_to_data_savename(param_dict::Dict{String,Any}, model_folder::AbstractString)
-    savingpath = joinpath("sims", "md", model_folder)
-    isdir(datadir(savingpath)) || mkpath(datadir(savingpath))
-    savingname = savename(_sanitize_for_savename(param_dict), "h5")
-    return (savingpath, savingname)
-end
+# Save paths (`dict_to_data_savename`) and the trajectory loader live in a
+# shared file so dev/analysis scripts can read what this script writes
+# without duplicating the savename logic.
+include(joinpath(@__DIR__, "md_io.jl"))
 
 # -----------------------------------------------------------------------------
 # Parameter sweeps
