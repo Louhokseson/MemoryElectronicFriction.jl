@@ -564,98 +564,72 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Re
 end
 
 
-function Lambda(energy_vec::AbstractVector, adsorbate_m::WideBandLimitModelNDOF, configuration::SVector, temperature::Real, fermi_level::Real=0.0)
-
-    # 1. Check available worker processes
-    avail_workers = workers()
-    has_workers = length(avail_workers) > 1 || (length(avail_workers) == 1 && avail_workers[1] != 1)
-    n_workers = length(avail_workers)
-
-    if has_workers
-        # ----------------------------------------------------
-        # 🚀 STRATEGY 1: MULTIPROCESSING (Hybrid Outer/Inner)
-        # ----------------------------------------------------
-        threads_per_worker = Threads.nthreads()
-        @info "Hybrid Parallelism: Distributing $(length(energy_vec)) energies across $n_workers worker processes, with $threads_per_worker threads per worker."
-
-        worker_func(e) = Lambda(e, adsorbate_m, configuration, temperature, fermi_level)
-        results_iterator = pmap(worker_func, energy_vec)
-        return collect(results_iterator)  # Vector{Matrix{Float64}}
-
-    else
-        # -----------------------------------------------------------------
-        # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING
-        # -----------------------------------------------------------------
-        n_energy = length(energy_vec)
-
-        @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
-
-        # Infer return type (Matrix{Float64}) from first call
-        R = typeof(Lambda(energy_vec[1], adsorbate_m, configuration, temperature, fermi_level))
-        Lambda_mat_vec = Vector{R}(undef, n_energy)
-
-        @info "Starting multithreaded Λ(ω) matrix calculation..."
-        Threads.@threads for i in 1:n_energy
-            Lambda_mat_vec[i] = Lambda(energy_vec[i], adsorbate_m, configuration, temperature, fermi_level)
-        end
-        @info "Λ(ω) matrix calculation completed."
-
-        return Lambda_mat_vec  # Vector{Matrix{Float64}}
+# ─────────────────────────────────────────────────────────────────
+# Parallelism dispatch — used by `Lambda(::AbstractVector, ...)`.
+#
+# Callers pass `parallelism::Symbol` (default `:auto`) to choose how the
+# per-energy work is distributed:
+#   :auto      — pmap if Distributed workers exist, else Threads.@threads.
+#   :processes — force pmap across workers.
+#   :threads   — force Threads.@threads on the local process. Use this
+#                from inside a pmap worker to avoid nested pmap.
+#   :serial    — plain loop. Use when the caller is already parallelising
+#                at a coarser granularity (e.g. inside a Threads.@threads
+#                loop) and you do not want any nested parallelism.
+# ─────────────────────────────────────────────────────────────────
+function _resolve_parallelism(parallelism::Symbol)
+    parallelism in (:auto, :processes, :threads, :serial) ||
+        throw(ArgumentError("parallelism must be :auto, :processes, :threads, or :serial; got :$parallelism"))
+    if parallelism === :auto
+        avail = workers()
+        has_workers = length(avail) > 1 || (length(avail) == 1 && avail[1] != 1)
+        return has_workers ? :processes : :threads
     end
+    return parallelism
+end
+
+function _parallel_map(work, items, parallelism::Symbol)
+    mode = _resolve_parallelism(parallelism)
+    n = length(items)
+
+    if mode === :processes
+        @debug "Lambda parallelism=:processes — pmap across $(length(workers())) workers, $(Threads.nthreads()) threads each."
+        return pmap(work, items)
+    end
+
+    # :threads and :serial: probe the first element to get a type-stable buffer.
+    probe = work(items[1])
+    out = Vector{typeof(probe)}(undef, n)
+    out[1] = probe
+
+    if mode === :threads
+        @debug "Lambda parallelism=:threads — Threads.@threads across $(Threads.nthreads()) threads."
+        Threads.@threads for i in 2:n
+            out[i] = work(items[i])
+        end
+    else  # :serial
+        for i in 2:n
+            out[i] = work(items[i])
+        end
+    end
+    return out
 end
 
 
-function Lambda(energy_vec::AbstractVector, adsorbate_m::AndersonImpurityModel1DOF, position::Real ,temperature::Real, fermi_level::Real=0.0)
-    
-    # 1. Check available worker processes
-    avail_workers = workers()
-    # A robust check: if there is more than just the main process (PID 1)
-    has_workers = length(avail_workers) > 1 || (length(avail_workers) == 1 && avail_workers[1] != 1)
-    n_workers = length(avail_workers)
-
-    if has_workers
-        # ----------------------------------------------------
-        # 🚀 STRATEGY 1: MULTIPROCESSING (Hybrid Outer/Inner)
-        # ----------------------------------------------------
-
-        # Get the number of threads available to each worker (which is the same as the Master's setting)
-        threads_per_worker = Threads.nthreads()
-        
-        @info "Hybrid Parallelism: Distributing $(length(energy_vec)) energies across $n_workers worker processes, with $threads_per_worker threads per worker." 
-
-        # Define the work function. This closure captures all arguments (bath, model, etc.)
-        # and transfers them once per worker via pmap's internal mechanism.
-        worker_func(e) = Lambda(e, adsorbate_m, position, temperature, fermi_level)
-
-        # pmap distributes the work element-by-element. Each element executes Lambda(e),
-        # where cauchy_integral uses the worker's internal threads.
-
-        results_iterator = pmap(worker_func, energy_vec)
-        
-        return collect(results_iterator) # Collect the results into a single Vector
-
-    else
-        # -----------------------------------------------------------------
-        # ⚙️ STRATEGY 2: FALLBACK TO LOCAL MULTITHREADING (Original optimized code)
-        # -----------------------------------------------------------------
-        n_energy = length(energy_vec)
-
-        @warn "No multiprocessing detected. Falling back to local multithreading ($(Threads.nthreads()) threads)."
-
-        # Infer return type from first call, then fill all n_energy points in parallel
-        R = typeof(Lambda(energy_vec[1], adsorbate_m, position, temperature, fermi_level))
-        Lambda_au_vec = Vector{R}(undef, n_energy)
-
-        @info "Starting multithreaded Λ(ω) calculation..."
-        Threads.@threads for i in 1:n_energy
-            Lambda_au_vec[i] = Lambda(energy_vec[i], adsorbate_m, position, temperature, fermi_level)
-        end
-        @info "Λ(ω) calculation completed."
-
-        return Lambda_au_vec
-    end
+function Lambda(energy_vec::AbstractVector, adsorbate_m::WideBandLimitModelNDOF,
+                configuration::SVector, temperature::Real, fermi_level::Real = 0.0;
+                parallelism::Symbol = :auto)
+    work(e) = Lambda(e, adsorbate_m, configuration, temperature, fermi_level)
+    return _parallel_map(work, energy_vec, parallelism)
 end
 
+
+function Lambda(energy_vec::AbstractVector, adsorbate_m::AndersonImpurityModel1DOF,
+                position::Real, temperature::Real, fermi_level::Real = 0.0;
+                parallelism::Symbol = :auto)
+    work(e) = Lambda(e, adsorbate_m, position, temperature, fermi_level)
+    return _parallel_map(work, energy_vec, parallelism)
+end
 
 
 end
