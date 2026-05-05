@@ -7,7 +7,7 @@ and the impurity DOS follows reference J. Chem. Phys. 164, 024707 (2026) https:/
 
 """
 
-@kwdef struct HGeAdsorbate <: FrequencyDependentModel
+@kwdef struct HGeAdsorbate <: FrequencyDependentModel1DOF
     # Morse Potential
     m::AbstractFloat  = austrip(1.0u"u")
     Dₑ::AbstractFloat = austrip(0.0502596u"eV")
@@ -37,19 +37,19 @@ and the impurity DOS follows reference J. Chem. Phys. 164, 024707 (2026) https:/
     η::AbstractFloat = austrip(0.02u"eV")
 
     ## constant density of states of the bath, unit eV^-1
-    ρ₀::AbstractFloat = austrip(1.0u"eV^-1")
+    ā::AbstractFloat = 2.5
 end
 
 fermi(e, e0, η) = 1 / (1 + exp((e - e0)/η))
 gappedDOS_smeared(ω, η, E₉) = fermi(ω, -E₉/2, η) + 1 - fermi(ω, E₉/2, η)
 
-function HokseonReproduce.coupling_V(r::Real, adsorbate_m::HGeAdsorbate)
+function HokseonReproduce.coupling_A(r::Real, adsorbate_m::HGeAdsorbate)
     Ã, L, x̃₀, q, scaledown = getfield.(Ref(adsorbate_m), (:Ã, :L, :x̃₀, :q, :scaledown))
     A = Ã .* ((1 .- q) ./2 .* (1 .- tanh((r .- x̃₀) ./ L)) .+ q)
     return A * scaledown
 end
 
-function HokseonReproduce.dV_dr(r::Real, adsorbate_m::HGeAdsorbate)
+function HokseonReproduce.dA_dr(r::Real, adsorbate_m::HGeAdsorbate)
     Ã, L, x̃₀, q, scaledown = getfield.(Ref(adsorbate_m), (:Ã, :L, :x̃₀, :q, :scaledown))
     dA_dr = - (1 .- q) .* Ã ./ (2L) .* sech((r .- x̃₀) ./ L).^2
     return dA_dr * scaledown
@@ -57,17 +57,17 @@ end
 
 
 function 𝓗_energyshift(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-    V_value = HokseonReproduce.coupling_V(r, adsorbate_m)
+    A_value = HokseonReproduce.coupling_A(r, adsorbate_m)
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
-    ρ₀ = adsorbate_m.ρ₀
+    ā = adsorbate_m.ā
 
     zp = 0.5 + im*(ω + E₉/2)/(2π*η)
     zm = 0.5 + im*(ω - E₉/2)/(2π*η)
 
     bracket = real(digamma(zm) - digamma(zp))
 
-    return V_value^2 * ρ₀ * bracket
+    return A_value^2 * ā^2 * bracket
 end
 
 
@@ -83,15 +83,19 @@ function HokseonReproduce.ϵₐ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
 
     𝓗 = 𝓗_energyshift(r, ω, adsorbate_m)
 
+    #return h
+
     return h + 𝓗
 end
 
 function HokseonReproduce.Δ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-    V_value = HokseonReproduce.coupling_V(r, adsorbate_m)
+    A_value = HokseonReproduce.coupling_A(r, adsorbate_m)
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
-    ρ₀ = adsorbate_m.ρ₀
-    return π * V_value^2 * gappedDOS_smeared(ω, η, E₉) * ρ₀
+    ā = adsorbate_m.ā
+
+    #return π * A_value^2 * ā^2
+    return π * A_value^2 * gappedDOS_smeared(ω, η, E₉) * ā^2
 end
 
 
@@ -120,11 +124,11 @@ end
 
 #    E₉ = adsorbate_m.E₉
 #    η = adsorbate_m.η
-#    ρ₀ = adsorbate_m.ρ₀
+#    ā = adsorbate_m.ā
 
 #    gappedDOS = gappedDOS_smeared(ω, η, E₉)
 
-#    return 2π * A_value * dA_value_dr * gappedDOS * ρ₀
+#    return 2π * A_value * dA_value_dr * gappedDOS * ā
 #end
 
 function HokseonReproduce.dϵₐ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
@@ -132,9 +136,10 @@ function HokseonReproduce.dϵₐ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate
 
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
-    ρ₀ = adsorbate_m.ρ₀
+    ā = adsorbate_m.ā
 
-    d𝓗dr = 2 * A(r, adsorbate_m) * dA_dr(r, adsorbate_m) * ρ₀ * real(digamma(0.5 + im*(ω - E₉/2)/(2π*η)) - digamma(0.5 + im*(ω + E₉/2)/(2π*η)))
-
-    return dhdr + d𝓗dr
+    d𝓗dr = 2 * HokseonReproduce.coupling_A(r, adsorbate_m) * HokseonReproduce.dA_dr(r, adsorbate_m) * ā * real(digamma(0.5 + im*(ω - E₉/2)/(2π*η)) - digamma(0.5 + im*(ω + E₉/2)/(2π*η)))
+    
+    return dhdr
+    #return dhdr + d𝓗dr
 end
