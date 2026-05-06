@@ -13,6 +13,14 @@
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using FFTW: bfft
+@everywhere using LinearAlgebra: dot
+
+# NQCD imports for the Markovian method. Friction evaluation runs on master
+# only (sim.cache is mutated in-place), so these don't need @everywhere.
+using NQCModels
+using NQCDynamics
+using NQCDynamics: AbstractSimulation
+using NQCCalculators
 
 # ---------------------------------------------------------------------------
 # Helpers run on every worker: when parallel=true, the pmap closure invokes
@@ -89,12 +97,26 @@
     #                threading the ω axis and you want no nested parallelism.
     # 1DOF Λ comes back as Float64 / Vector{Float64}; NDOF as
     # Matrix{Float64} / Vector{Matrix{Float64}}.
+    #
+    # `zero_frequency=true` is a sanity-check mode for the memory→Markovian
+    # CPA test (dev_memory2markovian_CPA.jl): Λ is evaluated at the smallest
+    # ω in the grid (a stand-in for ω→0 since Lambda(ω) ∝ 1/ω) and replicated
+    # as a constant across the full ω-grid before the cosine transform. With
+    # constant Λ₀, K(τ) ≈ Λ₀·δ(τ) and the memory double integral collapses
+    # to the Markovian single integral — so ΔE should reproduce Markovian CPA.
     function kernel_at_position(model::Symbol, adsorbate, q::AbstractVector,
                                 ω_au::AbstractVector, τ_au::AbstractVector,
-                                T_au::Real; parallelism::Symbol = :auto)
+                                T_au::Real; parallelism::Symbol = :auto,
+                                zero_frequency::Bool = false)
         pos = position_for_lambda(Val(model), q)
-        Λ_au = FrequencyLambda.Lambda(ω_au, adsorbate, pos, T_au;
-                                      parallelism = parallelism)
+        Λ_au = if zero_frequency
+            Λ0 = FrequencyLambda.Lambda([ω_au[1]], adsorbate, pos, T_au;
+                                        parallelism = :serial)[1]
+            fill(Λ0, length(ω_au))
+        else
+            FrequencyLambda.Lambda(ω_au, adsorbate, pos, T_au;
+                                   parallelism = parallelism)
+        end
         is_matrix = eltype(Λ_au) <: AbstractMatrix
         D = is_matrix ? size(first(Λ_au), 1) : 1
         K = zeros(D, D, length(τ_au))
@@ -142,11 +164,12 @@ approximated from the diagonal samples K(τ; q_i) and K(τ; q_j):
   * `:arithmetic` (default) → `0.5 * (K[i] + K[j])`
   * `:geometric`            → `sqrt(K[i]) * sqrt(K[j])`
 """
-function delta_energy(model::Symbol, adsorbate, traj, dt_au::Real;
+function delta_energy(model::Symbol, adsorbate::AndersonImpurityModel, traj, dt_au::Real;
                       ω_au::AbstractVector, T_au::Real,
                       stride::Integer = 1, parallel::Bool = false,
                       progress::Bool = true,
-                      kernel_average::Symbol = :arithmetic)
+                      kernel_average::Symbol = :arithmetic,
+                      zero_frequency::Bool = false)
     combiner = Val(kernel_average)
     combine_kernel(combiner, 0.0, 0.0)   # fail-fast on unknown scheme
     idx  = 1:stride:length(traj.t)
@@ -157,21 +180,23 @@ function delta_energy(model::Symbol, adsorbate, traj, dt_au::Real;
     τ_au = (0:N-1) .* Δt
 
     K = if parallel
-        progress && @info "Λ→K via pmap" N=N nworkers=nworkers()
+        progress && @info "Λ→K via pmap" N=N nworkers=nworkers() zero_frequency
         # Closure captures (model, adsorbate, ω_au, τ_au, T_au) — pmap
         # serialises them to each worker once per task. parallelism=:threads
         # tells FrequencyLambda to use the worker's local thread pool over
         # the ω-grid instead of re-pmap'ing (which would nest pmap).
         pmap(1:N) do i
             kernel_at_position(model, adsorbate, Q[:, i], ω_au, τ_au, T_au;
-                               parallelism = :threads)
+                               parallelism = :threads,
+                               zero_frequency = zero_frequency)
         end
     else
         Ks = Vector{Array{Float64,3}}(undef, N)
         for i in 1:N
-            progress && @info "Λ→K at trajectory step" i=i of=N
+            progress && @info "Λ→K at trajectory step" i=i of=N zero_frequency
             Ks[i] = kernel_at_position(model, adsorbate, Q[:, i], ω_au, τ_au, T_au;
-                                        parallelism = :auto)
+                                        parallelism = :auto,
+                                        zero_frequency = zero_frequency)
         end
         Ks
     end
@@ -185,4 +210,80 @@ function delta_energy(model::Symbol, adsorbate, traj, dt_au::Real;
         end
     end
     return ΔE * Δt^2
+end
+
+# ---------------------------------------------------------------------------
+# Markovian CPA — single-time-integral energy loss
+#
+#   ΔE_M = ∫₀^T v(t)ᵀ η(q(t)) v(t) dt    →    Δt · Σᵢ vᵢᵀ η(qᵢ) vᵢ
+#
+# η(q) is the wide-band-exact friction tensor returned by NQCD's
+# evaluate_friction(cache, R). The bath discretisation (M, bandwidth) only
+# affects the WideBandBath wrapper plumbing — η itself is the analytical
+# wide-band-limit value, so M=300 / bw=100 eV are fine defaults.
+# ---------------------------------------------------------------------------
+
+# Position layout for NQCD's evaluate_friction(cache, R::Matrix).
+# ET:    1×1 (one bond DOF, one atom)
+# NOAu:  2×1 (r, z;  POGO is one "atom" with 2 DOF)
+position_for_friction(::Val{:ErpenbeckThoss}, q::AbstractVector) = reshape([q[1]], 1, 1)
+position_for_friction(::Val{:NOAu},           q::AbstractVector) = reshape([q[1], q[2]], 2, 1)
+
+# Build the NQCD MDEF Simulation whose cache feeds evaluate_friction.
+# Mirrors dev/NQCD/dev_nqcd.jl: WideBandBath + WideBandExact friction method.
+function build_friction_sim(::Val{:ErpenbeckThoss}, md_params; T_au::Real,
+                            M::Integer = 300, bw_eV::Real = 100.0)
+    Γ_au   = austrip(md_params["Γ"])
+    qm     = NQCModels.ErpenbeckThoss(; Γ = Γ_au)
+    bw_au  = austrip(bw_eV * u"eV")
+    model  = WideBandBath(qm; step = (2bw_au)/M, bandmin = -bw_au, bandmax = bw_au)
+    atoms  = Atoms(md_params["mass"][1])
+    Simulation{DiabaticMDEF}(atoms, model;
+        friction_method = NQCCalculators.WideBandExact(model.ρ, 1/T_au),
+        temperature     = T_au)
+end
+
+function build_friction_sim(::Val{:NOAu}, md_params; T_au::Real,
+                            M::Integer = 300, bw_eV::Real = 100.0)
+    qm     = POGOModel()
+    bw_au  = austrip(bw_eV * u"eV")
+    model  = WideBandBath(qm; step = (2bw_au)/M, bandmin = -bw_au, bandmax = bw_au)
+    atoms  = Atoms(md_params["mass"][1])
+    Simulation{DiabaticMDEF}(atoms, model;
+        friction_method = NQCCalculators.WideBandExact(model.ρ, 1/T_au),
+        temperature     = T_au)
+end
+
+"""
+    delta_energy(model, sim::AbstractSimulation, traj, dt_au;
+                 stride=1, parallel=false, progress=true) -> ΔE_au
+
+Markovian CPA energy loss along a single trajectory:
+    ΔE = Δt · Σᵢ vᵢᵀ η(qᵢ) vᵢ
+
+`sim` is the NQCD `Simulation{DiabaticMDEF}` built by `build_friction_sim`;
+its cache provides `η = evaluate_friction(sim.cache, R)` at each step. For
+ET, η is 1×1; for NOAu, η is 2×2 in the (r, z) basis. `parallel` is accepted
+for API parity with the memory method but ignored — friction evaluation is
+fast and `sim.cache` is mutated in place, so the loop runs serially on master.
+"""
+function delta_energy(model::Symbol, sim::AbstractSimulation, traj, dt_au::Real;
+                      stride::Integer = 1, parallel::Bool = false,
+                      progress::Bool = true)
+    parallel && @warn "Markovian delta_energy: parallel=true ignored (sim.cache is mutated; per-step friction is cheap)"
+    idx  = 1:stride:length(traj.t)
+    Q    = traj.OutputPosition[:, idx]
+    V    = traj.OutputVelocity[:, idx]
+    Δt   = stride * dt_au
+    N    = size(V, 2)
+
+    ΔE = 0.0
+    @inbounds for i in 1:N
+        R = position_for_friction(Val(model), Q[:, i])
+        η = NQCCalculators.evaluate_friction(sim.cache, R)   # D×D
+        ΔE += dot(view(V, :, i), η, view(V, :, i))           # vᵀ η v
+        progress && (i == 1 || i == N || i % 500 == 0) &&
+            @info "Markovian ΔE step" i=i of=N
+    end
+    return ΔE * Δt
 end
