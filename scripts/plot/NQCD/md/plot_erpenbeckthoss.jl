@@ -10,39 +10,9 @@ using HokseonAssistant
 colormap = HokseonPlots.NICECOLORS
 HokseonAssistant.julia_build_procs()
 
-# -----------------------------------------------------------------------------
-# Savename helpers (mirror run_md.jl so we can locate the .h5 for a given
-# parameter dict). Kept inline rather than shared to keep this plot script
-# self-contained.
-# -----------------------------------------------------------------------------
-
-_savename_value(v::Unitful.Quantity) = ustrip(v)
-_savename_value(v::AbstractVector{<:Unitful.Quantity}) =
-    length(v) == 1 ? ustrip(v[1]) : join(string.(ustrip.(v)), "-")
-_savename_value(v::AbstractVector) = length(v) == 1 ? v[1] : v
-_savename_value(v) = v
-
-function _sanitize_for_savename(param_dict::Dict{String,Any})
-    Dict{String,Any}(k => _savename_value(v) for (k, v) in param_dict)
-end
-
-function dict_to_data_savename(param_dict::Dict{String,Any}, model_folder::AbstractString)
-    savingpath = joinpath("sims", "md", model_folder)
-    savingname = savename(_sanitize_for_savename(param_dict), "h5")
-    return (savingpath, savingname)
-end
-
-# -----------------------------------------------------------------------------
-# Load a single trajectory from the FileReduction h5 layout: /<traj_idx>/<qty>
-# For `trajectories = 1` in run_md.jl, there's one top-level group; pull it.
-# -----------------------------------------------------------------------------
-
-function load_trajectory(full_data_path)
-    h5open(full_data_path, "r") do fid
-        first_key = first(keys(fid))
-        group = fid[first_key]
-        return Dict(q => Array(group[q]) for q in keys(group))
-    end
+if !isdefined(Main, :HokseonReproduce)
+    include(srcdir("HokseonReproduce.jl"))
+    using .HokseonReproduce
 end
 
 # -----------------------------------------------------------------------------

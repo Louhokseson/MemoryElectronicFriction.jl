@@ -10,27 +10,9 @@ using HokseonAssistant
 colormap = HokseonPlots.NICECOLORS
 HokseonAssistant.julia_build_procs()
 
-# -----------------------------------------------------------------------------
-# Savename helpers (mirror run_md.jl so we can locate the .h5 for a given
-# parameter dict). Kept inline rather than shared to keep this plot script
-# self-contained.
-# -----------------------------------------------------------------------------
-
-_savename_value(v::Unitful.Quantity) = ustrip(v)
-_savename_value(v::AbstractVector{<:Unitful.Quantity}) =
-    length(v) == 1 ? ustrip(v[1]) : join(string.(ustrip.(v)), "-")
-_savename_value(v::AbstractVector) = length(v) == 1 ? v[1] : v
-_savename_value(::Nothing) = "off"
-_savename_value(v) = v
-
-function _sanitize_for_savename(param_dict::Dict{String,Any})
-    Dict{String,Any}(k => _savename_value(v) for (k, v) in param_dict)
-end
-
-function dict_to_data_savename(param_dict::Dict{String,Any}, model_folder::AbstractString)
-    savingpath = joinpath("sims", "md", model_folder)
-    savingname = savename(_sanitize_for_savename(param_dict), "h5")
-    return (savingpath, savingname)
+if !isdefined(Main, :HokseonReproduce)
+    include(srcdir("HokseonReproduce.jl"))
+    using .HokseonReproduce
 end
 
 # -----------------------------------------------------------------------------
@@ -63,8 +45,8 @@ all_params_NOAu = Dict{String, Any}(
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
     # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
     # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
-    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
-    "trajectories"          => [1],
+    "vibrational_state"     => [0],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
