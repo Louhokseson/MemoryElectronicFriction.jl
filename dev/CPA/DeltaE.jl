@@ -110,7 +110,7 @@ using NQCCalculators
                                 zero_frequency::Bool = false)
         pos = position_for_lambda(Val(model), q)
         Λ_au = if zero_frequency
-            Λ0 = FrequencyLambda.Lambda([ω_au[1]], adsorbate, pos, T_au;
+            Λ0 = FrequencyLambda.Lambda([1e-5], adsorbate, pos, T_au;
                                         parallelism = :serial)[1]
             fill(Λ0, length(ω_au))
         else
