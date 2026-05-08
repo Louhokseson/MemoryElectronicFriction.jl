@@ -1,6 +1,6 @@
 module FrequencyLambda
 import ..HokseonReproduce, ..DistributionTools, ..WeightedEHPDOS
-using ..DistributionTools: FermiDirac
+using ..DistributionTools: FermiDirac, ∂fermi
 using ..AndersonImpurityModels: WideBandLimitModel, WideBandLimitModel1DOF, WideBandLimitModelNDOF, FrequencyDependentModel, FrequencyDependentModel1DOF, BrandbygeAdsorbate, AndersonImpurityModel, AndersonImpurityModel1DOF, AndersonImpurityModelNDOF
 using StaticArrays: SVector
 using LinearAlgebra: Symmetric
@@ -466,11 +466,17 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModel1DOF, position::Real ,t
 
     A(ϵ) =  2 .* Δ ./ ((ϵ .- h).^2 .+ Δ.^2)
 
-    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- h) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- h) .* dΔdx ./ Δ) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    # ω = 0 → ∂n_F/∂ω₁ (analytic Markovian limit). Tolerance instead of exact
+    # zero so log-spaced grids near 0 don't suffer floating-point cancellation
+    # in the explicit n_F-difference.
+    fermi_diff(ω, ω₁) = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
+    (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
+
+    kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- h) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- h) .* dΔdx ./ Δ) .* fermi_diff(ω, ω₁)
 
     integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 
-    return - integral ./ (ω * 4π)
+    return - integral ./ 4π
 
 end
 
@@ -485,9 +491,13 @@ function Lambdaₖₗₗₖ(ω₁::Real, ω::Real, h::Real, Δ::Real,
     Fₖ(ω̃) = dh_k + (ω̃ - h) * dΔ_k / Δ
     Fₗ(ω̃) = dh_l + (ω̃ - h) * dΔ_l / Δ
 
-    Δf = HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)
+    # ω = 0 → ∂n_F/∂ω₁ (analytic Markovian limit). Tolerance instead of
+    # exact zero so log-spaced grids near 0 don't suffer floating-point
+    # cancellation in the explicit n_F-difference.
+    fermi_diff = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
+        (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
 
-    return Jₐ(ω₁) * Jₐ(ω + ω₁) * (Fₖ(ω₁) * Fₗ(ω₁ + ω) + Fₗ(ω₁) * Fₖ(ω₁ + ω)) * Δf / 4π
+    return Jₐ(ω₁) * Jₐ(ω + ω₁) * (Fₖ(ω₁) * Fₗ(ω₁ + ω) + Fₗ(ω₁) * Fₖ(ω₁ + ω)) * fermi_diff / 4π
 end
 
 function Lambda(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SVector, temperature::Real, fermi_level::Real=0.0)
@@ -521,7 +531,7 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SV
         end
     end
 
-    return Symmetric(Lambda_mat) ./ (ω * -2)
+    return Symmetric(Lambda_mat) ./ (-2)
 end
 
 
@@ -552,14 +562,20 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Re
 
     Jₐ(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
 
-    kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ A .* dAdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ A .* dAdr) .* (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    # ω = 0 → ∂n_F/∂ω₁ (analytic Markovian limit). Tolerance instead of
+    # exact zero so log-spaced grids near 0 don't suffer floating-point
+    # cancellation in the explicit n_F-difference.
+    fermi_diff(ω, ω₁) = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
+        (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
+
+    kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ A .* dAdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ A .* dAdr) .* fermi_diff(ω, ω₁)
 
     ω₁_effective = ω₁_effective_range(fermidirac, ω)
 
     #integral = quadgk(kernel,ω₁_effective[1], ω₁_effective[2]; rtol=1e-6)[1]
     integral = quadgk(kernel, -Inf, Inf; rtol=1e-6)[1]
 
-    return - integral ./ (ω * 4π)
+    return - integral ./ 4π
 
 end
 
