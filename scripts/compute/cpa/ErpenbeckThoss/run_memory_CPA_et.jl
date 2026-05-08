@@ -33,9 +33,9 @@ include("../DeltaE.jl")
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
-    "Γ"                     => [0.25u"eV"],
+    "Γ"                     => [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0] .* u"eV",
     "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
-    "translational_kinetic" => [3.0u"eV"],
+    "translational_kinetic" => [0.5,1.0,2.0,3.0] .* u"eV",
     "state"                 => [1],
     "tmax"                  => [200.0u"fs"],
     "dt"                    => [0.01u"fs"],
@@ -55,7 +55,7 @@ const CPA_config_et = Dict{String, Any}(
     "model"          => :ErpenbeckThoss,
     "T_K"            => 300,
     "ω"              => DEFAULT_ω_GRID_eV,         # see DeltaE.jl; eV, austrip'd inside
-    "stride"         => 100,
+    "stride"         => 1,
     "parallel"       => nworkers() > 1,
     "kernel_average" => :arithmetic,                        # :arithmetic | :geometric
 )
