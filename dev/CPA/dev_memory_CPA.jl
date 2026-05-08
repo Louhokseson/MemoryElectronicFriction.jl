@@ -58,8 +58,8 @@ all_params_NOAu = Dict{String, Any}(
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
     # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
     # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
-    "vibrational_state"     => [0,3],                 # try [nothing, 0, 3, 16]
-    "trajectories"          => [1000],
+    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
@@ -84,7 +84,6 @@ params_list_NOAu = dict_list(all_params_NOAu)
 et_trajs   = [load_md_trajectories(p, "ErpenbeckThoss") for p in params_list_et]
 noau_trajs = [load_md_trajectories(p, "NOAu")           for p in params_list_NOAu]
 
-
 # ---------------------------------------------------------------------------
 # DeltaE configuration — one dict per model, independent from MD params.
 # ---------------------------------------------------------------------------
@@ -92,8 +91,8 @@ noau_trajs = [load_md_trajectories(p, "NOAu")           for p in params_list_NOA
 const CPA_config_et = Dict{String, Any}(
     "model"          => :ErpenbeckThoss,
     "T_K"            => 300,
-    "ω"              => collect(0.01:0.01:20.0),   # will be austrip'd inside
-    "stride"         => 10,
+    "ω"              => DEFAULT_ω_GRID_eV,         # see DeltaE.jl; eV, austrip'd inside
+    "stride"         => 100,
     "parallel"       => nworkers() > 1,
     "kernel_average" => :arithmetic,                        # :arithmetic | :geometric
 )
@@ -101,7 +100,7 @@ const CPA_config_et = Dict{String, Any}(
 const CPA_config_noau = Dict{String, Any}(
     "model"          => :NOAu,
     "T_K"            => 300,
-    "ω"              => collect(0.01:0.01:20.0),
+    "ω"              => DEFAULT_ω_GRID_eV,
     "stride"         => 1,
     "parallel"       => nworkers() > 1,
     "kernel_average" => :arithmetic,                        # :arithmetic | :geometric
@@ -148,8 +147,8 @@ function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
 end
 
 # ---------------------------------------------------------------------------
-# Line up ET and NOAu demos.
+# Line up ET and NOAu
 # ---------------------------------------------------------------------------
 
-#run_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
-run_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)
+run_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
+#run_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)

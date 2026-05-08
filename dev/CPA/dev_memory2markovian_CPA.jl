@@ -14,10 +14,10 @@
 # residual gap is the truncation error from the finite ω-range we use to
 # evaluate the cosine transform.
 #
-# Implementation. `delta_energy(...; zero_frequency=true)` (in DeltaE.jl)
-# evaluates Λ once at ω_au[1] (the smallest ω in the grid — Lambda(ω) ∝ 1/ω
-# so we can't pass exactly 0) and replicates it as a constant vector across
-# the ω-grid before the cosine transform.
+# Implementation. `delta_energy(...; memory2markovian=true)` (in DeltaE.jl)
+# evaluates Λ exactly at ω = 0 via FrequencyLambda's analytic Markovian
+# limit (Λ(0; q, T) = η(q, T)) and replicates it as a constant vector
+# across the ω-grid before the cosine transform.
 #
 # Saving. The CPA config carries `"variant" => "test"` so results land at
 #   data/sims/cpa/<model>/test/...
@@ -43,7 +43,7 @@ HokseonAssistant.julia_build_procs()
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 
-# DeltaE.jl: memory `delta_energy` with the new `zero_frequency` kwarg.
+# DeltaE.jl: memory `delta_energy` with the `memory2markovian` kwarg.
 include("DeltaE.jl")
 
 # ---------------------------------------------------------------------------
@@ -71,13 +71,13 @@ et_trajs = [load_md_trajectories(p, "ErpenbeckThoss") for p in params_list_et]
 # CPA config — same shape as the memory config (so kernel_average is included
 # in the savename hash) but with `"variant" => "test"` to redirect the output
 # folder to sims/cpa/<model>/test/. The test still runs the memory machinery,
-# only with Λ(ω) → Λ(0) collapsed inside `delta_energy(...; zero_frequency=true)`.
+# only with Λ(ω) → Λ(0) collapsed inside `delta_energy(...; memory2markovian=true)`.
 # ---------------------------------------------------------------------------
 
 const CPA_config_et = Dict{String, Any}(
     "model"          => :ErpenbeckThoss,
     "T_K"            => 300,
-    "ω"              => collect(0.01:0.01:20.0),
+    "ω"              => DEFAULT_ω_GRID_eV,         # see DeltaE.jl
     "stride"         => 1,
     "parallel"       => nworkers() > 1,
     "kernel_average" => :arithmetic,
@@ -85,9 +85,9 @@ const CPA_config_et = Dict{String, Any}(
 )
 
 # ---------------------------------------------------------------------------
-# Run the zero-frequency-test ΔE over (CPA_config, params_list, trajs_list).
+# Run the memory→Markovian-test ΔE over (CPA_config, params_list, trajs_list).
 # Same loop structure as dev_memory_CPA.jl; only difference is
-# `zero_frequency=true` and the explicit `"variant" => "test"` folder.
+# `memory2markovian=true` and the explicit `"variant" => "test"` folder.
 # ---------------------------------------------------------------------------
 
 function run_memory2markovian_CPA_delta_energy(CPA_config, params_list, trajs_list)
@@ -113,7 +113,7 @@ function run_memory2markovian_CPA_delta_energy(CPA_config, params_list, trajs_li
                                  ω_au=ω_au, T_au=T_au,
                                  stride=stride, parallel=parallel,
                                  kernel_average=kernel_average,
-                                 zero_frequency=true)
+                                 memory2markovian=true)
             @info "memory→Markovian test ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
         end
 

@@ -23,6 +23,24 @@ using NQCDynamics: AbstractSimulation
 using NQCCalculators
 
 # ---------------------------------------------------------------------------
+# Default ω-grid for the cosine transform, in eV. Three regimes:
+#   • ω = 0 endpoint hits FrequencyLambda's analytic Markovian limit
+#     Λ(0; q, T) = η(q, T), so the trapezoidal rule's first cell carries the
+#     full DC backbone of K(τ) regardless of T.
+#   • Log-spaced points 1e-7…3.16e-3 eV resolve the FD-step crossover at
+#     ω ≈ k_B·T for any T from ~1 K up — at T = 10 K (k_B·T ≈ 8.6e-4 eV) we
+#     straddle the crossover with two log points either side.
+#   • Linear 0.01:0.01:20 eV continues to handle the high-ω impurity peak.
+# Used by the memory CPA drivers (dev_memory_CPA.jl, run_memory_CPA.jl,
+# dev_memory2markovian_CPA.jl). Keep `plot_Γ_DeltaE.jl` in sync if changed.
+# ---------------------------------------------------------------------------
+const DEFAULT_ω_GRID_eV =
+    vcat(0.0,
+         [1e-7, 3.16e-7, 1e-6, 3.16e-6, 1e-5, 3.16e-5,
+          1e-4, 3.16e-4, 1e-3, 3.16e-3],
+         collect(0.01:0.01:20.0))
+
+# ---------------------------------------------------------------------------
 # Helpers run on every worker: when parallel=true, the pmap closure invokes
 # `kernel_at_position` (and through it `position_for_lambda` and
 # `cosine_transform`) on each worker, so all three need to be defined there.
@@ -98,19 +116,20 @@ using NQCCalculators
     # 1DOF Λ comes back as Float64 / Vector{Float64}; NDOF as
     # Matrix{Float64} / Vector{Matrix{Float64}}.
     #
-    # `zero_frequency=true` is a sanity-check mode for the memory→Markovian
-    # CPA test (dev_memory2markovian_CPA.jl): Λ is evaluated at the smallest
-    # ω in the grid (a stand-in for ω→0 since Lambda(ω) ∝ 1/ω) and replicated
-    # as a constant across the full ω-grid before the cosine transform. With
-    # constant Λ₀, K(τ) ≈ Λ₀·δ(τ) and the memory double integral collapses
-    # to the Markovian single integral — so ΔE should reproduce Markovian CPA.
+    # `memory2markovian=true` is a sanity-check mode for the memory→Markovian
+    # CPA test (dev_memory2markovian_CPA.jl): Λ is evaluated exactly at ω=0
+    # via FrequencyLambda's analytic Markovian limit (Λ(0; q, T) = η(q, T))
+    # and replicated as a constant across the full ω-grid before the cosine
+    # transform. With constant Λ₀, K(τ) ≈ Λ₀·δ(τ) and the memory double
+    # integral collapses to the Markovian single integral — so ΔE should
+    # reproduce Markovian CPA.
     function kernel_at_position(model::Symbol, adsorbate, q::AbstractVector,
                                 ω_au::AbstractVector, τ_au::AbstractVector,
                                 T_au::Real; parallelism::Symbol = :auto,
-                                zero_frequency::Bool = false)
+                                memory2markovian::Bool = false)
         pos = position_for_lambda(Val(model), q)
-        Λ_au = if zero_frequency
-            Λ0 = FrequencyLambda.Lambda([1e-5], adsorbate, pos, T_au;
+        Λ_au = if memory2markovian
+            Λ0 = FrequencyLambda.Lambda([0.0], adsorbate, pos, T_au;
                                         parallelism = :serial)[1]
             fill(Λ0, length(ω_au))
         else
@@ -169,7 +188,7 @@ function delta_energy(model::Symbol, adsorbate::AndersonImpurityModel, traj, dt_
                       stride::Integer = 1, parallel::Bool = false,
                       progress::Bool = true,
                       kernel_average::Symbol = :arithmetic,
-                      zero_frequency::Bool = false)
+                      memory2markovian::Bool = false)
     combiner = Val(kernel_average)
     combine_kernel(combiner, 0.0, 0.0)   # fail-fast on unknown scheme
     idx  = 1:stride:length(traj.t)
@@ -180,7 +199,7 @@ function delta_energy(model::Symbol, adsorbate::AndersonImpurityModel, traj, dt_
     τ_au = (0:N-1) .* Δt
 
     K = if parallel
-        progress && @info "Λ→K via pmap" N=N nworkers=nworkers() zero_frequency
+        progress && @info "Λ→K via pmap" N=N nworkers=nworkers() memory2markovian
         # Closure captures (model, adsorbate, ω_au, τ_au, T_au) — pmap
         # serialises them to each worker once per task. parallelism=:threads
         # tells FrequencyLambda to use the worker's local thread pool over
@@ -188,15 +207,15 @@ function delta_energy(model::Symbol, adsorbate::AndersonImpurityModel, traj, dt_
         pmap(1:N) do i
             kernel_at_position(model, adsorbate, Q[:, i], ω_au, τ_au, T_au;
                                parallelism = :threads,
-                               zero_frequency = zero_frequency)
+                               memory2markovian = memory2markovian)
         end
     else
         Ks = Vector{Array{Float64,3}}(undef, N)
         for i in 1:N
-            progress && @info "Λ→K at trajectory step" i=i of=N zero_frequency
+            progress && @info "Λ→K at trajectory step" i=i of=N memory2markovian
             Ks[i] = kernel_at_position(model, adsorbate, Q[:, i], ω_au, τ_au, T_au;
                                         parallelism = :auto,
-                                        zero_frequency = zero_frequency)
+                                        memory2markovian = memory2markovian)
         end
         Ks
     end
