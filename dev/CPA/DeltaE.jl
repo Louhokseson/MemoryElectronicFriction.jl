@@ -13,7 +13,6 @@
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using FFTW: bfft
-@everywhere using LinearAlgebra: dot
 
 # NQCD imports for the Markovian method. Friction evaluation runs on master
 # only (sim.cache is mutated in-place), so these don't need @everywhere.
@@ -170,7 +169,10 @@ Compute ΔE from the memory-kernel formula. `traj` is one element of the
 loaded sweep (a NamedTuple with `:t`, `:OutputPosition`, `:OutputVelocity`).
 `dt_au` is the *raw* MD step in atomic units; the effective `Δt` is
 `stride·dt_au`. `model` is `:ErpenbeckThoss` or `:NOAu`. Returns ΔE in
-atomic units (Hartree).
+atomic units (Hartree) as a `Vector{Float64}` of length `D` (the number of
+DOFs): the `k`-th entry is the work done on DOF `k` by the full friction
+force, `ΔE_k = Σᵢⱼ Σₗ V[k,i] K[k,l,n] V[l,j]`. `sum(ΔE)` reproduces the
+total scalar. ET → length 1; NOAu → `[ΔE_r, ΔE_z]`.
 
 Set `parallel=true` to pmap the per-position kernel computation across
 Distributed workers — recommended for `stride=1` on HPC. Workers must
@@ -220,15 +222,15 @@ function delta_energy(model::Symbol, adsorbate::AndersonImpurityModel, traj, dt_
         Ks
     end
 
-    ΔE = 0.0
+    ΔE = zeros(D)
     @inbounds for i in 1:N, j in 1:i
         n = i - j + 1                        # τ_n = (i-j)·Δt → 1-based index
         for k in 1:D, l in 1:D
             Kkl = combine_kernel(combiner, K[i][k, l, n], K[j][k, l, n])
-            ΔE += V[k, i] * Kkl * V[l, j]
+            ΔE[k] += V[k, i] * Kkl * V[l, j]
         end
     end
-    return ΔE * Δt^2
+    return ΔE .* Δt^2
 end
 
 # ---------------------------------------------------------------------------
@@ -278,13 +280,16 @@ end
                  stride=1, parallel=false, progress=true) -> ΔE_au
 
 Markovian CPA energy loss along a single trajectory:
-    ΔE = Δt · Σᵢ vᵢᵀ η(qᵢ) vᵢ
+    ΔE_k = Δt · Σᵢ Σₗ V[k,i] η[k,l](qᵢ) V[l,i]
 
 `sim` is the NQCD `Simulation{DiabaticMDEF}` built by `build_friction_sim`;
 its cache provides `η = evaluate_friction(sim.cache, R)` at each step. For
-ET, η is 1×1; for NOAu, η is 2×2 in the (r, z) basis. `parallel` is accepted
-for API parity with the memory method but ignored — friction evaluation is
-fast and `sim.cache` is mutated in place, so the loop runs serially on master.
+ET, η is 1×1; for NOAu, η is 2×2 in the (r, z) basis. Returns a
+`Vector{Float64}` of length `D` (same per-DOF row-decomposition as the
+memory method); `sum(ΔE)` recovers the scalar `Δt · Σᵢ vᵢᵀ η(qᵢ) vᵢ`.
+`parallel` is accepted for API parity with the memory method but ignored —
+friction evaluation is fast and `sim.cache` is mutated in place, so the
+loop runs serially on master.
 """
 function delta_energy(model::Symbol, sim::AbstractSimulation, traj, dt_au::Real;
                       stride::Integer = 1, parallel::Bool = false,
@@ -294,15 +299,17 @@ function delta_energy(model::Symbol, sim::AbstractSimulation, traj, dt_au::Real;
     Q    = traj.OutputPosition[:, idx]
     V    = traj.OutputVelocity[:, idx]
     Δt   = stride * dt_au
-    N    = size(V, 2)
+    D, N = size(V)
 
-    ΔE = 0.0
+    ΔE = zeros(D)
     @inbounds for i in 1:N
         R = position_for_friction(Val(model), Q[:, i])
         η = NQCCalculators.evaluate_friction(sim.cache, R)   # D×D
-        ΔE += dot(view(V, :, i), η, view(V, :, i))           # vᵀ η v
+        for k in 1:D, l in 1:D
+            ΔE[k] += V[k, i] * η[k, l] * V[l, i]
+        end
         progress && (i == 1 || i == N || i % 500 == 0) &&
             @info "Markovian ΔE step" i=i of=N
     end
-    return ΔE * Δt
+    return ΔE .* Δt
 end

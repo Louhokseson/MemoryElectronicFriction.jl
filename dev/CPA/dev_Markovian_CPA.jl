@@ -109,17 +109,18 @@ function run_Markovian_CPA_delta_energy(CPA_config, params_list, trajs_list)
 
         sim   = build_friction_sim(Val(model), p; T_au = T_au)
         Δt_au = austrip(p["dt"])
-        ΔE_au_vec = Vector{Float64}(undef, length(trajs))
+        ΔE_au_per_traj = Vector{Vector{Float64}}(undef, length(trajs))
         for (i, traj) in enumerate(trajs)
-            ΔE_au_vec[i] = delta_energy(model, sim, traj, Δt_au;
+            ΔE_au_per_traj[i] = delta_energy(model, sim, traj, Δt_au;
                                         stride = stride, parallel = parallel)
-            @info "Markovian ΔE done" model=model config=i stride T_K=CPA_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
+            @info "Markovian ΔE done" model=model config=i stride T_K=CPA_config["T_K"] ΔE_eV=ustrip.(ΔE_au_per_traj[i] .* auconvert(u"eV", 1))
         end
+        ΔE_au_mat = reduce(hcat, ΔE_au_per_traj)   # D × n_traj
 
         h5open(full_data_path, "w") do fid
-            fid["DeltaE_au"] = ΔE_au_vec
+            fid["DeltaE_au"] = ΔE_au_mat
         end
-        @info "Saved Markovian ΔE" full_data_path n_traj=length(ΔE_au_vec)
+        @info "Saved Markovian ΔE" full_data_path size=size(ΔE_au_mat)
     end
 end
 

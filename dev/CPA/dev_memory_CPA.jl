@@ -58,8 +58,8 @@ all_params_NOAu = Dict{String, Any}(
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
     # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
     # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
-    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
-    "trajectories"          => [1],
+    "vibrational_state"     => [0],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
@@ -99,7 +99,7 @@ const CPA_config_et = Dict{String, Any}(
 
 const CPA_config_noau = Dict{String, Any}(
     "model"          => :NOAu,
-    "T_K"            => 300,
+    "T_K"            => 1000,
     "ω"              => DEFAULT_ω_GRID_eV,
     "stride"         => 1,
     "parallel"       => nworkers() > 1,
@@ -129,20 +129,23 @@ function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
 
         ads   = build_adsorbate(Val(model), p)
         Δt_au = austrip(p["dt"])
-        ΔE_au_vec = Vector{Float64}(undef, length(trajs))
+        # Per-trajectory ΔE is now a length-D vector (per-DOF row decomposition).
+        # Collect into a Vector{Vector{Float64}} and hcat into a D × n_traj matrix
+        # for HDF5 storage. ET → D=1; NOAu → D=2 with rows [ΔE_r; ΔE_z].
+        ΔE_au_per_traj = Vector{Vector{Float64}}(undef, length(trajs))
         for (i, traj) in enumerate(trajs)
-            ΔE_au_vec[i] = delta_energy(model, ads, traj, Δt_au;
+            ΔE_au_per_traj[i] = delta_energy(model, ads, traj, Δt_au;
                                  ω_au=ω_au, T_au=T_au,
                                  stride=stride, parallel=parallel,
                                  kernel_average=kernel_average)
-            @info "ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
+            @info "ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip.(ΔE_au_per_traj[i] .* auconvert(u"eV", 1))
         end
+        ΔE_au_mat = reduce(hcat, ΔE_au_per_traj)   # D × n_traj
 
-        # Save ΔE_au_vec as a 1-D dataset in HDF5.
         h5open(full_data_path, "w") do fid
-            fid["DeltaE_au"] = ΔE_au_vec
+            fid["DeltaE_au"] = ΔE_au_mat
         end
-        @info "Saved ΔE" full_data_path n_traj=length(ΔE_au_vec)
+        @info "Saved ΔE" full_data_path size=size(ΔE_au_mat)
     end
 end
 
@@ -150,5 +153,5 @@ end
 # Line up ET and NOAu
 # ---------------------------------------------------------------------------
 
-run_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
-#run_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)
+#run_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
+run_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)

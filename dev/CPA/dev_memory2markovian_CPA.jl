@@ -107,20 +107,21 @@ function run_memory2markovian_CPA_delta_energy(CPA_config, params_list, trajs_li
 
         ads   = build_adsorbate(Val(model), p)
         Δt_au = austrip(p["dt"])
-        ΔE_au_vec = Vector{Float64}(undef, length(trajs))
+        ΔE_au_per_traj = Vector{Vector{Float64}}(undef, length(trajs))
         for (i, traj) in enumerate(trajs)
-            ΔE_au_vec[i] = delta_energy(model, ads, traj, Δt_au;
+            ΔE_au_per_traj[i] = delta_energy(model, ads, traj, Δt_au;
                                  ω_au=ω_au, T_au=T_au,
                                  stride=stride, parallel=parallel,
                                  kernel_average=kernel_average,
                                  memory2markovian=true)
-            @info "memory→Markovian test ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip(ΔE_au_vec[i] * auconvert(u"eV", 1))
+            @info "memory→Markovian test ΔE done" model=model config=i stride parallel kernel_average T_K=CPA_config["T_K"] ΔE_eV=ustrip.(ΔE_au_per_traj[i] .* auconvert(u"eV", 1))
         end
+        ΔE_au_mat = reduce(hcat, ΔE_au_per_traj)   # D × n_traj
 
         h5open(full_data_path, "w") do fid
-            fid["DeltaE_au"] = ΔE_au_vec
+            fid["DeltaE_au"] = ΔE_au_mat
         end
-        @info "Saved test ΔE" full_data_path n_traj=length(ΔE_au_vec)
+        @info "Saved test ΔE" full_data_path size=size(ΔE_au_mat)
     end
 end
 
