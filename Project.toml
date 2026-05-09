@@ -4,6 +4,7 @@ authors = ["Hokseon"]
 version = "0.1.0"
 
 [deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Bonito = "824d6782-a2ef-11e9-3a09-e5662e0c26f8"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
@@ -42,6 +43,7 @@ UnitfulAtomic = "a7773ee8-282e-5fa2-be4e-bd808c38a91a"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
+ArgParse = "1.2.0"
 BenchmarkTools = "1.6.0"
 Bonito = "4.2.0"
 Distributed = "1.11.0"
