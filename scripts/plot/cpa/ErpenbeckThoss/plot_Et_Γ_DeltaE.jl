@@ -173,6 +173,18 @@ function plot_Et_Γ_DeltaE(E_TRANS_eV_list, Γ_eV_LIST, configs::AbstractVector;
             ytickwidth         = panel_spinewidth,
             xminortickwidth    = panel_spinewidth,
             yminortickwidth    = panel_spinewidth,
+            # Tick alignment: inward (=1) for the upper panels so the inner
+            # boundary ticks live in their own plot box; OUTWARD (=0) for
+            # the bottom panel's x-ticks, the standard publication look —
+            # the outer-edge tick labels read against ticks that protrude
+            # below the box. y-ticks stay inward on every panel.
+            # HokseonPlots' get_theme sets these, but its theme is only
+            # applied inside save_figure's `with_theme`; when displaying
+            # the figure directly we set them on the axis explicitly.
+            xtickalign         = is_bottom ? 0 : 1,
+            xminortickalign    = is_bottom ? 0 : 1,
+            ytickalign         = 1,
+            yminortickalign    = 1,
         )
         # Row 1 hosts the legend box (sits flush on top of panel 1), so
         # panels occupy rows 2..n_panels+1. ALL panels drop their top mirror
@@ -208,12 +220,13 @@ function plot_Et_Γ_DeltaE(E_TRANS_eV_list, Γ_eV_LIST, configs::AbstractVector;
 
     # Shared Γ axis — pan/zoom in any panel updates the rest.
     linkxaxes!(axes...)
-    # Strip the x-axis tick marks AND tick labels from the upper panels so
-    # only the bottom panel carries Γ ticks + the "Γ / eV" label. Combined
-    # with `mirror_top = false` on every panel, the inner boundaries between
-    # stacked panels are clean (no ticks pointing into neighbours).
+    # Hide tick *labels* and the axis label on the upper panels (so only
+    # panel (c) shows Γ values + "Γ / eV"), but keep the tick MARKS visible.
+    # With the HokseonPlots theme setting `xtickalign = 1`, those bottom
+    # ticks point inward (upward into the panel's own plot box), which is
+    # the publication-standard look for stacked-panel shared-x figures.
     for ax in axes[1:end-1]
-        hidexdecorations!(ax; grid = false)
+        hidexdecorations!(ax; grid = false, ticks = false, minorticks = false)
     end
 
     # Shared y-axis label in column 0, spanning the panel rows (rows 2..n+1
@@ -330,7 +343,7 @@ configs_et = vcat(memory_configs, markovian_configs)
 # `(lo, hi)` with either side `nothing` to clamp only one bound. Aligned to
 # E_TRANS_eV_LIST: index i ↔ panel for E_TRANS_eV_LIST[i].
 panel_ylims = [
-    (nothing, 1.2),            # (a) Eₜ = 1.0 eV — auto
+    (-0.1, 1.2),            # (a) Eₜ = 1.0 eV — auto
     (-3.0, nothing),    # (b) Eₜ = 2.0 eV — clamp lower bound at -3, upper auto
     (nothing, 64),            # (c) Eₜ = 3.0 eV — auto
 ]
