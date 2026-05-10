@@ -73,7 +73,7 @@ function plot_Γ_DeltaE(params_list, configs::AbstractVector;
                        xticks      = nothing,
                        figsize     = (HokseonPlots.RESOLUTION[1] * 2.0,
                                       HokseonPlots.RESOLUTION[2] * 3.0),
-                       legend_pos  = (:top, :left))
+                       legend_pos  = (:top, :right))
 
     Ts        = sort(unique(c["T_K"] for c in configs))
     color_map = Dict(Ts .=> temperature_palette(Ts))
@@ -83,7 +83,7 @@ function plot_Γ_DeltaE(params_list, configs::AbstractVector;
                    figure_padding = (8, 12, 6, 6),
                    fonts = (; regular = projectdir("fonts", "MinionPro-Capt.otf")))
     axis_kwargs = (
-        xlabel = "Δ / eV",
+        xlabel = "Γ / eV",
         ylabel = "ΔE / eV",
         xscale = xscale,
         # Pin major x-ticks to the swept Γ values so every plotted point
@@ -93,6 +93,8 @@ function plot_Γ_DeltaE(params_list, configs::AbstractVector;
         yminorticksvisible = true,
         xminorgridvisible  = false,
         yminorgridvisible  = false,
+        xgridvisible       = false,
+        ygridvisible       = false,
     )
     ax = xticks === nothing ?
         MyAxis(fig[1, 1]; axis_kwargs...) :
@@ -163,7 +165,7 @@ function plot_Γ_DeltaE(params_list, configs::AbstractVector;
     if title !== nothing
         Label(fig[1, 1], title;
               tellwidth = false, tellheight = false,
-              valign = :center, halign = :left,
+              valign = :center, halign = legend_pos[2],
               padding = (0, 8, 6, 0), fontsize = 13)
     end
 
@@ -174,8 +176,8 @@ end
 # Erpenbeck–Thoss sweep at fixed Eₜ, three temperatures
 # ===========================================================================
 
-const E_TRANS_eV = 0.5   # incident translational energy (eV) we compare across
-const Γ_eV_LIST  = [0.02, 0.1, 0.25, 0.5, 1.0]   # also used as x-tick locations
+const E_TRANS_eV = 2.0   # incident translational energy (eV) we compare across
+const Γ_eV_LIST  = [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0]   # also used as x-tick locations
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
@@ -192,12 +194,20 @@ all_params_et = Dict{String, Any}(
 params_list_et = dict_list(all_params_et)
 
 # Three temperatures with both variants → 6 curves.
-const T_K_LIST = [10, 300, 1000, 2000]
+const T_K_LIST = [300, 1000, 2000]
+
+# Mirror DeltaE.jl's DEFAULT_ω_GRID_eV — must stay in sync if changed.
+# The "ω" field is dropped from CPA_dict_to_data_savename's allowlist, so it
+# only documents intent; this script loads from saved files and never calls Λ.
+const _ω_GRID_eV = vcat(0.0,
+    [1e-7, 3.16e-7, 1e-6, 3.16e-6, 1e-5, 3.16e-5,
+     1e-4, 3.16e-4, 1e-3, 3.16e-3],
+    collect(0.01:0.01:20.0))
 
 memory_configs = [Dict{String,Any}(
         "model"          => :ErpenbeckThoss,
         "T_K"            => T,
-        "ω"              => collect(0.01:0.01:20.0),
+        "ω"              => _ω_GRID_eV,
         "stride"         => 1,
         "parallel"       => nworkers() > 1,
         "kernel_average" => :arithmetic,
