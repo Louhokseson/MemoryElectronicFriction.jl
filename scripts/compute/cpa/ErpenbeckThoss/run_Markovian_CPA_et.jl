@@ -28,13 +28,32 @@ HokseonAssistant.julia_build_procs()
 include("../DeltaE.jl")
 
 # ---------------------------------------------------------------------------
+# CLI argument parsing — accepts --gamma <float> and --temperature <int>.
+# Falls back to full sweep when run interactively (no args).
+# ---------------------------------------------------------------------------
+
+let i = 1, _gamma = nothing, _temp = nothing
+    while i <= length(ARGS)
+        if ARGS[i] == "--gamma" && i < length(ARGS)
+            _gamma = parse(Float64, ARGS[i+1]); i += 2
+        elseif ARGS[i] == "--temperature" && i < length(ARGS)
+            _temp  = parse(Int, ARGS[i+1]); i += 2
+        else
+            i += 1
+        end
+    end
+    global const CLI_GAMMA = _gamma
+    global const CLI_TEMP  = _temp
+end
+
+# ---------------------------------------------------------------------------
 # ErpenbeckThoss MD parameters — must match run_md.jl exactly so
 # dict_to_data_savename resolves to the same .h5 path the sweep wrote.
 # ---------------------------------------------------------------------------
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
-    "Γ"                     => [0.02, 0.1, 0.25, 0.5, 1.0] .* u"eV",
+    "Γ"                     => CLI_GAMMA === nothing ? [0.02, 0.1, 0.25, 0.5, 1.0] .* u"eV" : [CLI_GAMMA * u"eV"],
     "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
     "translational_kinetic" => [0.5,1.0,2.0,3.0] .* u"eV",
     "state"                 => [1],
@@ -57,7 +76,7 @@ et_trajs = [load_md_trajectories(p, "ErpenbeckThoss") for p in params_list_et]
 
 const CPA_config_et = Dict{String, Any}(
     "model"   => :ErpenbeckThoss,
-    "T_K"     => 1000,
+    "T_K"     => CLI_TEMP === nothing ? 10 : CLI_TEMP,
     "stride"  => 1,
     "parallel" => false,
 )

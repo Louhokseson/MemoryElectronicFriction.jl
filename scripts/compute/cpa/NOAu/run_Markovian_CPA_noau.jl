@@ -28,6 +28,28 @@ HokseonAssistant.julia_build_procs()
 include("../DeltaE.jl")
 
 # ---------------------------------------------------------------------------
+# CLI argument parsing — accepts --vib <int> and --temperature <int>.
+# Falls back to full sweep when run interactively (no args).
+# ---------------------------------------------------------------------------
+
+let i = 1, _vib = nothing, _temp = nothing, _tk = nothing
+    while i <= length(ARGS)
+        if ARGS[i] == "--vib" && i < length(ARGS)
+            _vib  = parse(Int, ARGS[i+1]); i += 2
+        elseif ARGS[i] == "--temperature" && i < length(ARGS)
+            _temp = parse(Int, ARGS[i+1]); i += 2
+        elseif ARGS[i] == "--translational_kinetic" && i < length(ARGS)
+            _tk   = parse(Float64, ARGS[i+1]); i += 2
+        else
+            i += 1
+        end
+    end
+    global const CLI_VIB  = _vib
+    global const CLI_TEMP = _temp
+    global const CLI_TK   = _tk
+end
+
+# ---------------------------------------------------------------------------
 # NOAu MD parameters — must match run_md.jl exactly so dict_to_data_savename
 # resolves to the same .h5 path the sweep wrote.
 # ---------------------------------------------------------------------------
@@ -35,15 +57,15 @@ include("../DeltaE.jl")
 all_params_NOAu = Dict{String, Any}(
     "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],
-    "translational_kinetic" => [1.0u"eV"],
+    "translational_kinetic" => CLI_TK === nothing ? [5.0u"eV"] : [CLI_TK * u"eV"],
     "state"                 => [1],
     "tmax"                  => [500.0u"fs"],
     "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],
     "termination_threshold" => [5.0u"Å"],
-    "vibrational_state"     => [nothing],
-    "trajectories"          => [1],
+    "vibrational_state"     => CLI_VIB  === nothing ? [0,3,16] : [CLI_VIB],
+    "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
@@ -58,7 +80,7 @@ noau_trajs = [load_md_trajectories(p, "NOAu") for p in params_list_NOAu]
 
 const CPA_config_noau = Dict{String, Any}(
     "model"   => :NOAu,
-    "T_K"     => 300,
+    "T_K"     => CLI_TEMP === nothing ? 2000 : CLI_TEMP,
     "stride"  => 1,
     "parallel" => false,
 )
