@@ -153,6 +153,7 @@ end
 # ---------------------------------------------------------------------------
 combine_kernel(::Val{:arithmetic}, a, b) = 0.5 * (a + b)
 combine_kernel(::Val{:geometric},  a, b) = sqrt(a) * sqrt(b)
+combine_kernel(::Val{:endpoint},   a, b) = a
 combine_kernel(::Val{S}, _, _) where {S} =
     throw(ArgumentError("unknown kernel_average=$S; define combine_kernel(::Val{:$S}, a, b)"))
 
