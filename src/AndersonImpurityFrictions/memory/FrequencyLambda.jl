@@ -534,6 +534,39 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SV
     return Symmetric(Lambda_mat) ./ (-2)
 end
 
+function LambdaAveraged(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SVector, temperature::Real, fermi_level::Real=0.0)
+
+    """
+        
+        Frequency-dependent friction calculation based on Anderson impurity model parameters
+    
+        输入:
+        ω : 能量值 度量能量尺度
+        configuration : adsorbate 的物理位置
+        temperature : 电子温度
+        fermi_level : 费米能级
+    """
+
+    ndof = adsorbate_m.ndof
+    diagonal_sum = 0.0
+
+    fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
+    h = HokseonReproduce.adsorbate_h(configuration, adsorbate_m)
+    Δ = HokseonReproduce.Δ(configuration, adsorbate_m)
+
+    dhdx_vec = HokseonReproduce.dh_dx(configuration, adsorbate_m)
+    dΔdx_vec = HokseonReproduce.dΔ_dx(configuration, adsorbate_m)
+
+    for k in 1:ndof
+        diagonal_sum += quadgk(
+            ω₁ -> Lambdaₖₗₗₖ(ω₁, ω, h, Δ, dhdx_vec[k], dhdx_vec[k], dΔdx_vec[k], dΔdx_vec[k], fermidirac),
+            -Inf, Inf; rtol=1e-6)[1]
+    end
+    diagonal_average_sum = diagonal_sum / ndof
+
+    return diagonal_average_sum ./ (-2)
+end
+
 
 function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Real ,temperature::Real, fermi_level::Real=0.0)
 
@@ -644,6 +677,13 @@ function Lambda(energy_vec::AbstractVector, adsorbate_m::AndersonImpurityModel1D
                 position::Real, temperature::Real, fermi_level::Real = 0.0;
                 parallelism::Symbol = :auto)
     work(e) = Lambda(e, adsorbate_m, position, temperature, fermi_level)
+    return _parallel_map(work, energy_vec, parallelism)
+end
+
+function LambdaAveraged(energy_vec::AbstractVector, adsorbate_m::WideBandLimitModelNDOF,
+                configuration::SVector, temperature::Real, fermi_level::Real = 0.0;
+                parallelism::Symbol = :auto)
+    work(e) = LambdaAveraged(e, adsorbate_m, configuration, temperature, fermi_level)
     return _parallel_map(work, energy_vec, parallelism)
 end
 
