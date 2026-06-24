@@ -164,9 +164,9 @@ end
 
 all_params_et = Dict{String, Any}(
     "mass"                  => [10.54u"u"],
-    "Γ"                     => [0.25u"eV"],
+    "Γ"                     => [0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1.0] .* u"eV",
     "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
-    "translational_kinetic" => [3.0u"eV"],
+    "translational_kinetic" => [0.5, 1.0, 2.0, 3.0].*u"eV",
     "state"                 => [1],
     "tmax"                  => [200.0u"fs"],
     "dt"                    => [0.01u"fs"],
@@ -180,7 +180,7 @@ all_params_NOAu = Dict{String, Any}(
     "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
 #    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
-    "translational_kinetic" => [1.0u"eV"],
+    "translational_kinetic" => collect(0.2:0.1:1.0) .* u"eV",
     "state"                 => [1],
     "tmax"                  => [500.0u"fs"],
     "dt"                    => [0.25u"fs"],
@@ -189,8 +189,8 @@ all_params_NOAu = Dict{String, Any}(
     "termination_threshold" => [5.0u"Å"],                 # scattered threshold
     # nothing → frozen bond (old behaviour). Integer ν → EBK-sample (r, ṙ)
     # at quantum number ν; bump trajectories to ~1000 for a ν ensemble.
-    "vibrational_state"     => [nothing],                 # try [nothing, 0, 3, 16]
-    "trajectories"          => [1],
+    "vibrational_state"     => [0, 3, 16],                 # try [nothing, 0, 3, 16]
+    "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
 
