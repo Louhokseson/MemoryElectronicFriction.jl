@@ -51,7 +51,7 @@ phase-space sampled. The animation walks through the logic for `ν = 16`:
    turning points; the kinetic energy spans `0 → Eν − V_min`.
 
 <p align="center">
-  <img src="plots/ebk_sampling/ebk_sampling_nu16.gif" width="900"
+  <img src="docs/ebk_sampling_nu16.gif" width="900"
        alt="EBK initial vibrational sampling for ν = 16"/>
   <br/>
   <em>EBK preparation of the NO(ν = 16) initial state. <b>Left:</b> the 1-D bond
