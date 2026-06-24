@@ -216,12 +216,12 @@ tp_segs(E) = (r1=turning_points(E)[1]*Bohr2Å; r2=turning_points(E)[2]*Bohr2Å; 
               Point2f[Point2f(r1,Vmin_eV),Point2f(r1,EeV), Point2f(r2,Vmin_eV),Point2f(r2,EeV)])
 
 const CAP1 = "STEP 1 — QUANTISE.  Raise the energy until the EBK action ∮p dr = 2π(ν+½)ℏ equals an\ninteger ν.  Each integer ν fixes one bound bond energy Eν (the levels stacking up at left)."
-const CAP2 = @sprintf("ν = 16 LOCKED.  Eν = %.2f eV  (%.2f eV above the well bottom).  Turning points r∓ (red dashed)\nbound the oscillation.  This Eν is exactly what generate_1D_vibrations puts into the bond.", E16_eV, KEmax_eV)
-const CAP3 = "STEP 2 — SAMPLE.  Run the classical orbit at Eν and record (r, ṙ) at uniform time steps\n(½μṙ² = Eν − V(r)).  The bond lingers near r∓ → r piles at the turning points;  KE spans 0 → Eν − V_min."
+const CAP2 = @sprintf("ν = 16 LOCKED.  Eν = %.2f eV  (%.2f eV above the well bottom).  Turning points r∓ (red dashed)\nbound the oscillation — the bond is now sampled at this fixed energy.", E16_eV, KEmax_eV)
+const CAP3 = "STEP 2 — SAMPLE.  Roll the classical orbit at Eν and record (r, ṙ) at uniform time steps\n(½μṙ² = Eν − V(r)).  Slow near r∓ → r piles at the turning points;  KE = ½μṙ² is U-shaped (mostly ≈ 0, max = Eν − V_min)."
 
-@info "Rendering $(NF) frames → plots/ebk_sampling/ebk_sampling_nu16.gif"
-mkpath(plotsdir("ebk_sampling"))
 gifpath = projectdir("docs","ebk_sampling_nu16.gif")
+mkpath(dirname(gifpath))
+@info "Rendering $(NF) frames → $(gifpath)"
 
 function update!(f)
     if f <= N1                                   # ---- ACT 1: quantise
@@ -265,6 +265,13 @@ end
 record(fig, gifpath, 1:NF; framerate = 20) do f
     update!(f)
 end
-
 @info "Saved" gifpath
+
+# optional still frames (set EBK_STILLDIR to emit PNGs; no ffmpeg needed)
+if haskey(ENV, "EBK_STILLDIR")
+    for (n, fr) in [("act1", 60), ("act2", N1 + 10), ("act3", NF)]
+        update!(fr)
+        save(joinpath(ENV["EBK_STILLDIR"], "ebk_still_$(n).png"), fig)
+    end
+end
 println("GIF written to: ", gifpath)
