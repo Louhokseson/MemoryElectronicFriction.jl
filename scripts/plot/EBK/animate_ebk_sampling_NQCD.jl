@@ -249,7 +249,7 @@ function update!(f)
         o_tp[]     = tp_segs(E16)
         o_loop[]   = loop_pts(E16)
         o_ball[]   = Point2f[Point2f(reqÅ, E16_eV)]
-        o_pmark[]  = Point2f[Point2f(reqÅ, 0.0)]
+        o_pmark[]  = Point2f[Point2f(reqÅ, vmaxÅfs)]   # ON the shell (a draw at r_eq has |ṙ|=vmax, not 0)
         o_trail[]  = Point2f[]
         o_read[]   = @sprintf("ν = 16 locked   ·   Eν = %.2f eV", E16_eV)
     else                                         # ---- ACT 3: sample (MCMC)
@@ -258,7 +258,7 @@ function update!(f)
         m = clamp(round(Int, k/N3 * NCHAIN), 2, NCHAIN)
         o_ball[]  = Point2f[Point2f(CR[m]*Bohr2Å, E16_eV)]
         o_pmark[] = Point2f[Point2f(CR[m]*Bohr2Å, CV[m]*vfac)]
-        lo = max(1, m-14)
+        lo = max(1, m-5)        # short trail: last few hops only (chords are jump-connectors, vertices are on-shell)
         o_trail[] = Point2f.(CR[lo:m] .* Bohr2Å, CV[lo:m] .* vfac)
         st = max(1, m ÷ 350)
         o_psamp[] = Point2f.(CR[1:st:m] .* Bohr2Å, CV[1:st:m] .* vfac)
