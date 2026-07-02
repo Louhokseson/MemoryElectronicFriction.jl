@@ -15,6 +15,7 @@ using NQCDynamics
 using NQCCalculators
 using StaticArrays: SMatrix, SVector
 using Colors
+using Serialization
 
 HokseonAssistant.julia_build_procs()
 
@@ -111,18 +112,19 @@ const COLUMN_SCALE    = [1.0, 1.0, 1.0, 1e3]
 # Figure: 2×4 panels for a CENTRED two-column (figure*) placement. In revtex,
 # inside `figure*` the `\linewidth` is the full two-column text width, so
 #     \includegraphics[width=\linewidth]{fig/.../LambdaElement_r_h.pdf}
-# embeds the PDF at the full two-column text width. We author at exactly that
-# size (FIG_FRACTION = 1.0 · TWO_COLUMN_WIDTH) so it embeds at scale 1.0 — 1
-# Makie pt = 1 typeset pt — keeping fonts and line widths exactly as set here.
-# FIG_HEIGHT is increased (~545 pt) to accommodate the h(r,z) contour below the
-# 2×4 friction grid.
+# embeds the PDF at the full two-column text width. We author at
+# FIG_FRACTION · TWO_COLUMN_WIDTH (see below) so the PDF embeds at scale 1.0 —
+# 1 Makie pt = 1 typeset pt — keeping fonts and line widths exactly as set here.
+# FIG_HEIGHT is increased to accommodate the h(r,z) contour below the
+# 2×4 friction grid; the vertical colourbar sits beside the contour so no
+# extra bottom row is needed.
 # ─────────────────────────────────────────────────────────────────
 const MINION_FONT  = projectdir("fonts", "MinionPro-Capt.otf")
 const FIG_FRACTION = 1.2                                 # author at the full two-column width (figure*), embed at scale 1.0
 scaled(x) = x .* FIG_FRACTION                            # works on scalars and tuples
 
 const FIG_WIDTH  = round(Int, FIG_FRACTION * HokseonPlots.TWO_COLUMN_WIDTH)
-const FIG_HEIGHT = round(Int, FIG_WIDTH * 0.92)          # ~530 pt — reduced contour height, friction panels unchanged
+const FIG_HEIGHT = round(Int, FIG_WIDTH * 0.88)          # ~508 pt — vertical colourbar, no bottom colourbar row
 
 const panel_spinewidth = scaled(1.2)
 const LINE_WIDTH       = scaled(1.3)   # data curves, Markovian dashes, legend swatches
@@ -145,7 +147,7 @@ const N_ROWS = length(R_VALUES)
 const N_COLS = length(COLUMN_TITLES)
 
 fig = Figure(size=(FIG_WIDTH, FIG_HEIGHT),
-             figure_padding=(2, 6, 2, 2),
+             figure_padding=(2, 10, 2, 2),
              fonts=(;regular=MINION_FONT))
 
 # Panels live in a nested grid: rows glued (rowgap = 0, ω-axis shared so only
@@ -269,14 +271,14 @@ Label(fig[2, 2], "ħω  (eV)";
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Contour section: h(r,z) = U₁(r,z) − U₀(r,z) heatmap below the 2×4 friction grid
-# The horizontal colourbar sits at the bottom (row 5) below the contour.
+# The vertical colourbar sits to the right of the contour in a nested grid.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 # Hartree to eV conversion (CODATA 2018)
 const HA_TO_EV = 27.211386245988
 
 # r: N–O bond length (Å), z: molecule–surface distance (Å)
-const R_CONTOUR = 0.80:0.001:2.30
+const R_CONTOUR = 0.80:0.001:2.25
 const Z_CONTOUR = 0.50:0.001:5.50
 
 r_contour = collect(R_CONTOUR)
@@ -285,14 +287,29 @@ z_contour = collect(Z_CONTOUR)
 # Evaluate h(r, z) on the grid
 adsorbate_m = NOAuAdsorbate()
 
-# h_data[i, j] ↔ (r = r_contour[i], z = z_contour[j]); shape (N_r, N_z)
-h_data = Matrix{Float64}(undef, length(r_contour), length(z_contour))
+# Cache the expensive h_data evaluation to speed up iterative figure tuning.
+# Include the grid geometry in the filename so changing R_CONTOUR/Z_CONTOUR
+# automatically invalidates the cache and avoids shape mismatches.
+const H_DATA_CACHE = let
+    grid_key = (length(R_CONTOUR), first(R_CONTOUR), step(R_CONTOUR),
+                length(Z_CONTOUR), first(Z_CONTOUR), step(Z_CONTOUR))
+    projectdir("tmp", "plot_LambdaElement_r_h_data_$(hash(grid_key)).jls")
+end
 
-for (i, r) in enumerate(r_contour), (j, z) in enumerate(z_contour)
-    r_au = austrip(r * u"Å")
-    z_au = austrip(z * u"Å")
-    h_au = HokseonReproduce.adsorbate_h(r_au, z_au, adsorbate_m)
-    h_data[i, j] = h_au * HA_TO_EV   # au → eV
+h_data = if isfile(H_DATA_CACHE)
+    deserialize(H_DATA_CACHE)
+else
+    mkpath(dirname(H_DATA_CACHE))
+    # h_data[i, j] ↔ (r = r_contour[i], z = z_contour[j]); shape (N_r, N_z)
+    _h_data = Matrix{Float64}(undef, length(r_contour), length(z_contour))
+    for (i, r) in enumerate(r_contour), (j, z) in enumerate(z_contour)
+        r_au = austrip(r * u"Å")
+        z_au = austrip(z * u"Å")
+        h_au = HokseonReproduce.adsorbate_h(r_au, z_au, adsorbate_m)
+        _h_data[i, j] = h_au * HA_TO_EV   # au → eV
+    end
+    serialize(H_DATA_CACHE, _h_data)
+    _h_data
 end
 
 # Leave out-of-range values (< -1 or > 5 eV) uncoloured (white/blank)
@@ -302,17 +319,19 @@ for i in eachindex(h_data)
     end
 end
 
-# 6 discrete colour blocks for intervals: [-1,0), [0,1), [1,2), [2,3), [3,4), [4,5]
-# Colors ordered light → dark (monotonically darkening with increasing h):
-#   pale-yellow → green → salmon → magenta → dark-purple → dark-teal
-# categorical=true gives one solid colour per block, no interpolation.
+# 6 discrete colours for intervals: [-1,0), [0,1), [1,2), [2,3), [3,4), [4,5]
+# Colours ordered light → dark (monotonically darkening with increasing h):
 const CONTOUR_COLORS = [colorant"#FCDE9C", colorant"#7CCBA2", colorant"#F0746E",
                          colorant"#DC3977", colorant"#7C1D6F", colorant"#045275"]
-const BLOCK_CMAP = cgrad(CONTOUR_COLORS, categorical = true)
 
 # ── Contour axis (row 3, below the friction panels) ─────────────────────────
+# The contour and its vertical colourbar share a nested GridLayout in fig[3, 2]
+# so their combined width matches the full top block in fig[1, 2], including the
+# right-hand row labels ("r = ... Å").
 
-contour_ax = MyAxis(fig[3, 2];
+contour_grid = GridLayout(fig[3, 2])
+
+contour_ax = MyAxis(contour_grid[1, 1];
     # --- labels ---
     xlabel              = "",
     ylabel              = "",
@@ -328,7 +347,7 @@ contour_ax = MyAxis(fig[3, 2];
     yminortickalign     = 1,
     xminorticksvisible  = true,
     yminorticksvisible  = true,
-    xminorticks         = IntervalsBetween(5),
+    xminorticks         = IntervalsBetween(2),   # minor every 0.1 Å (majors every 0.2 Å)
     yminorticks         = IntervalsBetween(5),
     xticksize           = scaled(6),
     yticksize           = scaled(6),
@@ -348,14 +367,20 @@ contour_ax = MyAxis(fig[3, 2];
 
     # --- axis limits ---
     limits = (first(R_CONTOUR), last(R_CONTOUR), first(Z_CONTOUR), last(Z_CONTOUR)),
+
+    # --- ticks: major every 0.2 Å, minor every 0.1 Å ---
+    xticks = 0.8:0.2:2.25,
 )
 
-# ── Heatmap (diverging colormap centred at h = 0) ─────────────────────────────
+# ── Filled contour: one polygon per integer band, not one patch per grid cell.
+#    The discrete levels match the 6 colour blocks below; NaNs stay blank.
 
-hm = heatmap!(contour_ax, r_contour, z_contour, h_data;
-    colormap   = BLOCK_CMAP,
-    colorrange = (-1, 5),
-    nan_color  = :white,
+const H_FILLED_LEVELS = [-1, 0, 1, 2, 3, 4, 5]
+
+cf = contourf!(contour_ax, r_contour, z_contour, h_data;
+    levels   = H_FILLED_LEVELS,
+    colormap = CONTOUR_COLORS,
+    nan_color = :white,
 )
 
 # ── Contour overlay: thin dark lines at multiple levels ───────────────────────
@@ -369,7 +394,7 @@ contour!(contour_ax, r_contour, z_contour, h_data;
     levels    = h_levels,
 )
 
-# ── Highlight: h(r,z) = 0 contour in WHITE (thicker for visibility) ──────────
+# ── Highlight: h(r,z) = 0 contour in RED (thicker for visibility) ───────────
 
 contour!(contour_ax, r_contour, z_contour, h_data;
     color     = :red,
@@ -390,29 +415,35 @@ text!(contour_ax, 0.04, 0.95; text = "(i)", space = :relative,
 Label(fig[3, 1], "z  (Å)";
       rotation = π/2, tellheight = false, tellwidth = true,
       fontsize = AXIS_LABEL_SIZE, padding = (0, 0, 0, 0))
-Label(fig[4, 2], "r  (Å)";
+# Place the x-label inside the nested contour grid so it centres under the
+# contour axis only, not under the colourbar to its right.
+Label(contour_grid[2, 1], "r  (Å)";
       tellwidth = false, tellheight = true,
       fontsize = AXIS_LABEL_SIZE, padding = (0, 0, 2, 0))
 
-# ── Horizontal colourbar (row 5 — bottom of figure)
+# ── Vertical colourbar (right of contour, same total width as panel grid)
 #    Integer-eV ticks align with discrete colour-block boundaries.
-#    Explicit height gives the colourbar visual weight without being too tall.
 # ═══════════════════════════════════════════════════════════════════════════════
 
 h_ticks = [-1, 0, 1, 2, 3, 4, 5]
 
-Colorbar(fig[5, 2], hm;
+Colorbar(contour_grid[1, 2], cf;
     label         = "h(r,z)  (eV)",
     labelsize     = AXIS_LABEL_SIZE,
     ticklabelsize = TICK_LABEL_SIZE,
-    vertical      = false,
+    vertical      = true,
     ticks         = h_ticks,
-    flipaxis      = true,       # puts tick labels below the horizontal colourbar
+    flipaxis      = false,       # tick labels on the right (outside) of the vertical colourbar
+    ticksize      = scaled(6),
+    tickwidth     = panel_spinewidth,
+    tickalign     = 1,           # inward ticks, consistent with the axes
     tellheight    = true,
-    height        = scaled(12),
-    tellwidth     = false,
-    halign        = :center,
+    tellwidth     = true,
 )
+
+colgap!(contour_grid, scaled(4))              # small gap between contour and colourbar
+colsize!(contour_grid, 2, Fixed(scaled(24)))  # fixed narrow colourbar; contour takes the rest
+rowgap!(contour_grid, scaled(2))              # tight gap between contour and its x-label
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Legend (span 1:2 — no colourbar column needed)
@@ -474,7 +505,6 @@ Legend(fig[0, 1:2],
 colgap!(fig.layout, FIG_COLGAP)                        # gap between y-label columns and content columns
 rowgap!(fig.layout, scaled(2))                         # tight rows everywhere
 rowgap!(fig.layout, 2, scaled(6))                      # gap between friction x-label (row 2) and contour (row 3)
-rowgap!(fig.layout, 4, scaled(6))                      # gap between r-label (row 4) and bottom colourbar (row 5)
 
 # ── Save ──────────────────────────────────────────────────────────────────────
 
