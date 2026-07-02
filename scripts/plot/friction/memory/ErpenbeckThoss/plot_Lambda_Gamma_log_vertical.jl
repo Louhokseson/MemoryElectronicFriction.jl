@@ -249,7 +249,7 @@ for (k, Γ) in enumerate(Γ_values)
           fontsize=ANNOTATION_SIZE, strokewidth=0.6, strokecolor=:black)
 
     # Per-panel Γ annotation (centre top, inside the axis)
-    text!(ax, 0.5, 0.95; text="Δ(x=0) = $(Γ/2) eV", space=:relative, align=(:center, :top), fontsize=ANNOTATION_SIZE)
+    text!(ax, 0.5, 0.95; text="Δ₀ = $(Γ/2) eV", space=:relative, align=(:center, :top), fontsize=ANNOTATION_SIZE)
 end
 
 # Link x-axes across the three panels and tighten vertical spacing.
