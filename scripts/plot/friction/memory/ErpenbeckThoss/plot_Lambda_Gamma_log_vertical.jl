@@ -1,8 +1,12 @@
-## Only for the main process
+# ==============================================================================
+# 1. Environment Setup
+# ==============================================================================
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project everywhere
-import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
+@quickactivate "HokseonReproduce"
+
+import Pkg; Pkg.precompile()
+
 using HDF5
 using DelimitedFiles
 using HokseonAssistant
@@ -13,87 +17,65 @@ using NQCModels
 using NQCDynamics
 using NQCCalculators
 using Colors
-colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
-colormap = HokseonPlots.NICECOLORS;
+
 HokseonAssistant.julia_build_procs()
 
-
-# Load packages everywhere
 @everywhere using HokseonReproduce
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using NQCModels.QuantumModels
 @everywhere using NQCModels
 
+# ==============================================================================
+# 2. Physical Parameters
+# ==============================================================================
+# Sweep parameters: one stacked panel per Γ, one curve per molecule–surface
+# distance x (Å) within each panel. The peak marker ħω*(x) = |h(x)| + C_FERMI·k_BT
+# marks the particle–hole threshold for taking the level ϵₐ(x) = h(x) across the
+# saturated Fermi edge.
+const POSITIONS     = [1.9, 2.0, 2.1, 2.2]       # molecule–surface distance / Å
+const Γ_VALUES      = [0.8, 0.2, 0.02]           # one panel per Γ
+const TEMPERATURE   = 300                          # electronic temperature / K
+const ENERGY_GRID   = collect(0.000001:0.001:11.0) # ω / eV
+const IMPURITY_MODEL = :ErpenbeckThossAdsorbate
 
-function buildSystemBath(params_dict::Dict{String, Any})
-    @unpack  position, impuritymodel, temperature, energy = params_dict
-
-    if impuritymodel == :ErpenbeckThossAdsorbate
-        Γ = params_dict["Γ"]
-        adsorbate_m = ErpenbeckThossAdsorbate(Γ=austrip(Γ*u"eV"))
-    else
-        adsorbate_m = eval(impuritymodel)()
-    end
-
-
-    energy_au = austrip.(energy*u"eV")
-    temperature_au = austrip.(temperature*u"K")
-    position_au = austrip.(position*u"Å")
-
-    return adsorbate_m, position_au, energy_au, temperature_au
-end
-
-function NQCD_MarkovianFriction(params_dict::Dict{String, Any})
-    @unpack  position, impuritymodel, temperature = params_dict
-
-    temperature_au = austrip.(temperature*u"K")
-    position_au = austrip.(position*u"Å")
-
-    if impuritymodel == :ErpenbeckThossAdsorbate
-        Γ = params_dict["Γ"]
-
-        adsorbate_m = NQCModels.ErpenbeckThoss(;Γ=austrip(Γ*u"eV"))
-        M = 1000
-        bw = austrip(100u"eV")
-        model = WideBandBath(adsorbate_m; step=(2bw)/M, bandmin=-bw, bandmax=bw)
-        atoms = Atoms(1u"u")
-        sim = Simulation{DiabaticMDEF}(atoms, model, friction_method=NQCCalculators.WideBandExact(model.ρ, 1/temperature_au))
-
-        MarkovianFriction = [only(NQCCalculators.evaluate_friction(sim.cache, hcat(x))) for x in position_au]
-        return MarkovianFriction
-    end
-end
-
-
-# Screening parameters
-positions  = [1.9, 2.0, 2.1, 2.2]
-Γ_values   = [0.8, 0.2, 0.02]
-temperature = 300
-energy_grid = collect(0.000001:0.001:11.0)
-impuritymodel = :ErpenbeckThossAdsorbate
-
-# Peak marker: ħω*(x) = |h(x)| + C·k_BT. C is the Fermi-edge "confidence width" —
-# how many k_BT past E_F until the Fermi factor is essentially saturated:
-#   n_F(−C·k_BT) = 1/(1+e^{−C});  C=4 ⇒ ≈ 98 %.
+# Peak marker: ħω*(x) = |h(x)| + C_FERMI·k_BT.  C_FERMI is the Fermi-edge
+# "confidence width" — how many k_BT past E_F until the Fermi factor is essentially
+# saturated: n_F(−C·k_BT) = 1/(1+e^{−C});  C=4 ⇒ ≈ 98 %.
 const C_FERMI = 3
-kT_eV = ustrip(auconvert(u"eV", austrip(temperature * u"K")))   # k_BT in eV
+kT_eV = ustrip(auconvert(u"eV", austrip(TEMPERATURE * u"K")))   # k_BT in eV
 
-# x-axis range (eV) for the MyAxis `limits`. (The peak marker in this variant is
+# x-axis range (eV) for the MyAxis `limits`. The peak marker in this variant is
 # a vlines! in DATA coordinates, so unlike the scatter-marker version it does not
-# use this for a relative-space mapping.)
+# use this for a relative-space mapping.
 const XLIMITS = (-0.2, 11.0)
 
-colors = [colorant"#1f77b4", colorant"#2ca02c", colorant"#ff7f0e", colorant"#d62728"]
+# ==============================================================================
+# 3. Plotting Configuration
+# ==============================================================================
+# Colour palettes
+colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
+colormap    = HokseonPlots.NICECOLORS;
+colors      = [colorant"#1f77b4", colorant"#2ca02c", colorant"#ff7f0e", colorant"#d62728"]   # one per position
 
-# Panel labels (top-left of each stacked panel)
+# Panel labels (top-right of each stacked panel)
 panel_labels = ["(a)", "(b)", "(c)"]
 
-const panel_spinewidth = 1.8
+# Font
 const MINION_FONT = projectdir("fonts", "MinionPro-Capt.otf")
 
-# PRX-standard font sizes for the 481-unit (TWO_COLUMN_WIDTH) canvas.
-# A clean 3-step hierarchy that stays legible at column width while fitting
-# the horizontal legend and avoiding y-tick crowding (rowgap! = 0):
+# Spine / line widths
+const panel_spinewidth = 1.8
+const LINE_WIDTH       = 2.0     # data curves (solid + dash) and legend swatches
+const PEAK_LINE_WIDTH  = 1.5     # ħω* peak-position dotted vertical marker
+
+# Legend geometry
+const LEGEND_PATCHSIZE     = (26, 12)
+const LEGEND_COLGAP        = 8
+const LEGEND_TITLE_COLGAP  = 8
+
+# Font sizes — PRX-standard hierarchy for the single-column-width canvas.
+# Three levels that stay legible while fitting the horizontal legend
+# and avoiding y-tick crowding (rowgap! = 0):
 #   primary   (24) — axis labels (carry units, must survive reduction)
 #   secondary (22) — panel annotation + legend group titles
 #   data      (20) — numeric tick labels + legend entries (kept equal)
@@ -103,14 +85,62 @@ const ANNOTATION_SIZE   = 22
 const LEGEND_LABEL_SIZE = 16
 const LEGEND_TITLE_SIZE = 18
 
-fig = Figure(size=(HokseonPlots.TWO_COLUMN_WIDTH, HokseonPlots.TWO_COLUMN_WIDTH * 1),
-             figure_padding=(2, 6, 2, 2),
-             fonts=(;regular=MINION_FONT))
+# ==============================================================================
+# 4. Computation Functions
+# ==============================================================================
+function buildSystemBath(params_dict::Dict{String, Any})
+    @unpack position, impuritymodel, temperature, energy = params_dict
 
-# Build 3 stacked panels (one per Γ) sharing x-axis and y-label
-axes = Axis[]
-for (k, Γ) in enumerate(Γ_values)
-    is_bottom = (k == length(Γ_values))
+    if impuritymodel == :ErpenbeckThossAdsorbate
+        Γ = params_dict["Γ"]
+        adsorbate_m = ErpenbeckThossAdsorbate(Γ = austrip(Γ * u"eV"))
+    else
+        adsorbate_m = eval(impuritymodel)()
+    end
+
+    energy_au      = austrip.(energy * u"eV")
+    temperature_au = austrip.(temperature * u"K")
+    position_au    = austrip.(position * u"Å")
+
+    return adsorbate_m, position_au, energy_au, temperature_au
+end
+
+function NQCD_MarkovianFriction(params_dict::Dict{String, Any})
+    @unpack position, impuritymodel, temperature = params_dict
+
+    temperature_au = austrip.(temperature * u"K")
+    position_au    = austrip.(position * u"Å")
+
+    if impuritymodel == :ErpenbeckThossAdsorbate
+        Γ = params_dict["Γ"]
+
+        adsorbate_m = NQCModels.ErpenbeckThoss(; Γ = austrip(Γ * u"eV"))
+        M   = 1000
+        bw  = austrip(100u"eV")
+        model = WideBandBath(adsorbate_m; step = (2bw) / M, bandmin = -bw, bandmax = bw)
+        atoms = Atoms(1u"u")
+        sim   = Simulation{DiabaticMDEF}(atoms, model,
+                    friction_method = NQCCalculators.WideBandExact(model.ρ, 1 / temperature_au))
+
+        MarkovianFriction = [only(NQCCalculators.evaluate_friction(sim.cache, hcat(x))) for x in position_au]
+        return MarkovianFriction
+    end
+end
+
+# ==============================================================================
+# 5. Figure Construction
+# ==============================================================================
+fig = Figure(size = (HokseonPlots.TWO_COLUMN_WIDTH, HokseonPlots.TWO_COLUMN_WIDTH * 1),
+             figure_padding = (2, 6, 2, 2),
+             fonts = (; regular = MINION_FONT))
+
+# ── 5a. Axes ─────────────────────────────────────────────────────────────────
+# Build 3 stacked panels (one per Γ) sharing x-axis and y-label.
+axes_data      = Axis[]
+all_panel_data = []
+
+for (k, Γ) in enumerate(Γ_VALUES)
+    is_bottom = (k == length(Γ_VALUES))
 
     # First pass — compute every curve for this Γ so the panel's y-top is known
     # BEFORE the axis is built. MyAxis builds a linked twin axis (for the mirror
@@ -120,13 +150,13 @@ for (k, Γ) in enumerate(Γ_values)
     panel_curves = NamedTuple[]
     panel_ymax   = 0.0
     panel_ymin   = Inf
-    for (i, pos) in enumerate(positions)
+    for (i, pos) in enumerate(POSITIONS)
         params_dict = Dict{String, Any}(
-            "impuritymodel" => impuritymodel,
+            "impuritymodel" => IMPURITY_MODEL,
             "centre"        => 0,
             "position"      => pos,
-            "temperature"   => temperature,
-            "energy"        => energy_grid,
+            "temperature"   => TEMPERATURE,
+            "energy"        => ENERGY_GRID,
             "Γ"             => Γ,
         )
 
@@ -149,8 +179,9 @@ for (k, Γ) in enumerate(Γ_values)
         posvals    = filter(x -> isfinite(x) && x > 0, vcat(γ, Λ))
         panel_ymax = max(panel_ymax, maximum(posvals))
         panel_ymin = min(panel_ymin, minimum(posvals))
-        push!(panel_curves, (i=i, ω_ev=ω_ev, γ=γ, Λ=Λ, ω_peak=ω_peak))
+        push!(panel_curves, (i = i, ω_ev = ω_ev, γ = γ, Λ = Λ, ω_peak = ω_peak))
     end
+    push!(all_panel_data, panel_curves)
 
     # Size the log y-window so the TOPMOST line sits at a fixed fraction r_top of
     # the panel height in EVERY panel, regardless of its dynamic range. The green
@@ -168,18 +199,14 @@ for (k, Γ) in enumerate(Γ_values)
     y_top = panel_ymax * 10.0^(α * D_dec)
 
     ax = MyAxis(fig[k, 2];
-                xlabel = is_bottom ? "ħω  (eV)" : "",
-                ylabel = "",
-                # Symmetric-log: LINEAR in |K| < 1 (so the high-ω tail can flatten
-                # onto the 0 baseline — the convergence feature a pure log10 axis
-                # cannot show, since log10(0) = -∞), LOGARITHMIC for |K| > 1 (so the
-                # x=2.0 peak, ~1539 at small ω, is compressed instead of dominating).
+                xlabel             = is_bottom ? "ħω  (eV)" : "",
+                ylabel             = "",
                 yscale             = log10,
                 xlabelsize         = AXIS_LABEL_SIZE,
                 xticklabelsize     = TICK_LABEL_SIZE,
                 yticklabelsize     = TICK_LABEL_SIZE,
-                limits = (XLIMITS..., y_bot, y_top),
-                xgridvisible = false, ygridvisible = false,
+                limits             = (XLIMITS..., y_bot, y_top),
+                xgridvisible       = false, ygridvisible = false,
                 xticklabelsvisible = is_bottom,
                 xticksvisible      = is_bottom,
                 xticks             = 0:2:10,
@@ -199,8 +226,8 @@ for (k, Γ) in enumerate(Γ_values)
     # `xticksmirrored=false` already kills the top mirror ticks of the bottom
     # panel; for upper panels we additionally hide their bottom ticks.
     if !is_bottom
-        hidexdecorations!(ax; ticks=true, ticklabels=true, label=true,
-                              minorticks=true, grid=false)
+        hidexdecorations!(ax; ticks = true, ticklabels = true, label = true,
+                              minorticks = true, grid = false)
     end
 
     # Defensive observable-level override.
@@ -217,8 +244,8 @@ for (k, Γ) in enumerate(Γ_values)
     # appear at the boundary between middle and bottom panels.
     for content in contents(fig[k, 2])
         if content !== ax && content isa Axis
-            hidexdecorations!(content; ticks=true, minorticks=true,
-                              ticklabels=true, label=true, grid=false)
+            hidexdecorations!(content; ticks = true, minorticks = true,
+                              ticklabels = true, label = true, grid = false)
         end
     end
 
@@ -230,14 +257,14 @@ for (k, Γ) in enumerate(Γ_values)
         ax.topspinevisible[] = false
     end
 
-    push!(axes, ax)
+    push!(axes_data, ax)
 
     # Second pass — draw the precomputed curves for this Γ. ω* is the dotted
     # vertical peak marker (particle–hole threshold) in DATA coordinates (eV).
     for c in panel_curves
-        lines!(ax, c.ω_ev, c.γ; color=colors[c.i], linestyle=:dash,  linewidth=2)
-        vlines!(ax, c.ω_peak;   color=colors[c.i], linestyle=:dot,   linewidth=1.5)
-        lines!(ax, c.ω_ev, c.Λ; color=colors[c.i], linestyle=:solid, linewidth=2)
+        lines!(ax, c.ω_ev, c.γ; color = colors[c.i], linestyle = :dash,  linewidth = LINE_WIDTH)
+        vlines!(ax, c.ω_peak;   color = colors[c.i], linestyle = :dot,   linewidth = PEAK_LINE_WIDTH)
+        lines!(ax, c.ω_ev, c.Λ; color = colors[c.i], linestyle = :solid, linewidth = LINE_WIDTH)
     end
 
     # Per-panel (a)/(b)/(c) label (top-right corner, inside the axis), placed in the
@@ -245,25 +272,28 @@ for (k, Γ) in enumerate(Γ_values)
     # MinionPro file ships with the project, so faux-bold the label by stroking the
     # glyphs in their own colour — this keeps the Minion typeface rather than
     # falling back to a generic :bold sans-serif.
-    text!(ax, 0.98, 0.97; text=panel_labels[k], space=:relative, align=(:right, :top),
-          fontsize=ANNOTATION_SIZE, strokewidth=0.6, strokecolor=:black)
+    text!(ax, 0.98, 0.97; text = panel_labels[k], space = :relative, align = (:right, :top),
+          fontsize = ANNOTATION_SIZE, strokewidth = 0.6, strokecolor = :black)
 
     # Per-panel Γ annotation (centre top, inside the axis)
-    text!(ax, 0.5, 0.95; text="Δ₀ = $(Γ/2) eV", space=:relative, align=(:center, :top), fontsize=ANNOTATION_SIZE)
+    text!(ax, 0.5, 0.95; text = "Δ₀ = $(Γ/2) eV", space = :relative, align = (:center, :top),
+          fontsize = ANNOTATION_SIZE)
 end
 
 # Link x-axes across the three panels and tighten vertical spacing.
 # rowgap! must be set AFTER the layout is populated; 0 removes the inter-panel gap
 # so the stacked panels share a single x-axis edge (PRX-style).
-linkxaxes!(axes...)
+linkxaxes!(axes_data...)
 rowgap!(fig.layout, 0)
 
+# ── 5b. Axis Labels ──────────────────────────────────────────────────────────
 # Shared y-label spanning all 3 panels (one rotated Label rather than per-axis labels)
-Label(fig[1:length(Γ_values), 1], "K(ω ; x)  (u⋅ps⁻¹)";
+Label(fig[1:length(Γ_VALUES), 1], "K(ω ; x)  (u⋅ps⁻¹)";
       rotation = π/2, tellheight = false, tellwidth = true,
       fontsize = AXIS_LABEL_SIZE,
       padding = (0, 4, 0, 0))
 
+# ── 5c. Legend ───────────────────────────────────────────────────────────────
 # Horizontal legend across the TOP of the figure, spanning the axes column.
 # In a PRX two-column figure a side legend wastes lateral space; a thin
 # horizontal strip above the panels keeps the data area as wide as possible.
@@ -276,12 +306,19 @@ Label(fig[1:length(Γ_values), 1], "K(ω ; x)  (u⋅ps⁻¹)";
 # left-aligned entries (so every row's entries share a common left edge).
 # A nested GridLayout isolates the legend's row spacing from the panels'
 # rowgap!(fig.layout, 0).
-color_elems  = [LineElement(color=colors[i], linewidth=2) for i in 1:length(positions)]
-color_labels = ["$(p)" for p in positions]
+color_elems  = [LineElement(color = colors[i], linewidth = LINE_WIDTH) for i in 1:length(POSITIONS)]
+color_labels = ["$(p)" for p in POSITIONS]
 
-style_elems  = [LineElement(color=:black, linestyle=:solid, linewidth=2),
-                LineElement(color=:black, linestyle=:dash,  linewidth=2)]
+style_elems  = [LineElement(color = :black, linestyle = :solid, linewidth = LINE_WIDTH),
+                LineElement(color = :black, linestyle = :dash,  linewidth = LINE_WIDTH)]
 style_labels = ["Frequency", "Markovian"]
+
+# Peak-marker key: the dotted vertical lines sit at the particle–hole threshold
+# for taking the level ϵₐ(x)=h(x) across the Fermi sea — at |h(x)| plus the
+# Fermi-edge saturation width C·k_BT (n_F→1), i.e. ħω = |h(x)| + C·k_BT.
+peak_elems  = [LineElement(points = [Point2f(0.5, 0), Point2f(0.5, 1)], color = :gray25,
+                           linestyle = :dot, linewidth = PEAK_LINE_WIDTH)]
+peak_labels = ["ħω = |h(x)| + $(C_FERMI) kʙT"]
 
 # Span BOTH columns (y-label + axes) so the legend is centred over the WHOLE
 # figure width rather than just the axes column (column 2). tellwidth=true makes
@@ -299,19 +336,13 @@ legend_kwargs = (
     tellheight    = true,
     halign        = :left,
     framevisible  = false,
-    patchsize     = (26, 12),
-    colgap        = 8,            # gap between entries within a row
+    patchsize     = LEGEND_PATCHSIZE,
+    colgap        = LEGEND_COLGAP,
     patchlabelgap = 4,
     padding       = (2, 2, 1, 1),
     labelsize     = LEGEND_LABEL_SIZE,
     labelfont     = MINION_FONT,
 )
-
-# Peak-marker key: the dotted vertical lines sit at the particle–hole threshold
-# for taking the level ϵₐ(x)=h(x) across the Fermi sea — at |h(x)| plus the
-# Fermi-edge saturation width C·k_BT (n_F→1), i.e. ħω = |h(x)| + C·k_BT.
-peak_elems  = [LineElement(points=[Point2f(0.5, 0), Point2f(0.5, 1)], color=:gray25, linestyle=:dot, linewidth=1.5)]
-peak_labels = ["ħω = |h(x)| + $(C_FERMI) kʙT"]
 
 # Column 1: group titles as right-aligned Labels (so all three share a common
 # right edge). Column 2: the entries, left-aligned. col 1 sizes to the widest
@@ -327,12 +358,40 @@ Legend(legend_grid[1, 2], color_elems, color_labels; legend_kwargs...)
 Legend(legend_grid[2, 2], style_elems, style_labels; legend_kwargs...)
 Legend(legend_grid[3, 2], peak_elems,  peak_labels;  legend_kwargs...)
 
-colgap!(legend_grid, 8)   # gap between the title column and the entry column
+colgap!(legend_grid, LEGEND_TITLE_COLGAP)   # gap between the title column and the entry column
 rowgap!(legend_grid, 2)
 
 colgap!(fig.layout, 4)
 
-
+# ── 5d. Display & Save ───────────────────────────────────────────────────────
 display(fig)
 
 save(plotsdir("friction", "ErpenbeckThoss", "Lambda_Gamma_log_vertical.pdf"), fig)
+
+# Save the underlying figure data to HDF5.
+figure_data_dir = projectdir("figure_data", "fig_2")
+mkpath(figure_data_dir)
+h5_path = joinpath(figure_data_dir, "fig_2_data.h5")
+
+h5open(h5_path, "w") do h5
+    h5["positions"] = collect(Float64, POSITIONS)
+    h5["Gamma_values"] = collect(Float64, Γ_VALUES)
+    h5["temperature"] = Float64(TEMPERATURE)
+    h5["energy_grid"] = collect(Float64, ENERGY_GRID)
+    h5["impuritymodel"] = string(IMPURITY_MODEL)
+    h5["C_FERMI"] = Float64(C_FERMI)
+    h5["kT_eV"] = Float64(kT_eV)
+
+    panel_names = ["panel_a", "panel_b", "panel_c"]
+    for (k, Γ) in enumerate(Γ_VALUES)
+        panel_group = create_group(h5, panel_names[k])
+        for c in all_panel_data[k]
+            pos = POSITIONS[c.i]
+            pos_group = create_group(panel_group, "position_$(pos)")
+            pos_group["omega_ev"] = collect(Float64, c.ω_ev)
+            pos_group["gamma"] = collect(Float64, c.γ)
+            pos_group["Lambda"] = collect(Float64, c.Λ)
+            pos_group["omega_peak"] = Float64[c.ω_peak]
+        end
+    end
+end
