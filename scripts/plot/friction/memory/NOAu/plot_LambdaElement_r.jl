@@ -127,7 +127,7 @@ const FIG_HEIGHT = round(Int, FIG_WIDTH * 0.55)          # LANDSCAPE: wide, shor
 
 const panel_spinewidth = scaled(1.2)
 const LINE_WIDTH       = scaled(1.3)   # data curves, Markovian dashes, legend swatches
-const MARKER_SIZE      = scaled(9)     # threshold-energy × markers (plot + legend swatch)
+const MARKER_SIZE      = scaled(7)     # threshold-energy × markers (plot + legend swatch)
 const PANEL_COLGAP     = scaled(10)    # gap between element columns / row-label column
 const FIG_COLGAP       = scaled(4)     # gap between y-label and panel block
 
@@ -281,7 +281,7 @@ color_labels = ["$z" for z in sort(Z_VALUES)]
 
 style_elems  = [LineElement(color=:black, linestyle=:solid, linewidth=LINE_WIDTH),
                 LineElement(color=:black, linestyle=:dash,  linewidth=LINE_WIDTH)]
-style_labels = ["Frequency", "Markovian"]
+style_labels = ["Memory", "Markovian"]
 
 # Neutral black × (colour already encodes z) matching the threshold scatter marker.
 threshold_elems  = [MarkerElement(marker=:x, color=:black, markersize=MARKER_SIZE)]
