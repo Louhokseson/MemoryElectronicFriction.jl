@@ -23,22 +23,22 @@ const FONT = projectdir("fonts", "dejavu-sans.book.ttf")
 const FIG_FRACTION = 1.0
 scaled(x) = x .* FIG_FRACTION
 
-const TWO_COLUMN_WIDTH = 481
-const FIG_WIDTH  = round(Int, FIG_FRACTION * TWO_COLUMN_WIDTH)
+const FIGURE_WIDTH = 996
+const FIG_WIDTH  = round(Int, FIG_FRACTION * FIGURE_WIDTH)
 const FIG_HEIGHT = round(Int, FIG_WIDTH * 0.55)
 
-const panel_spinewidth = scaled(1.2)
-const LINE_WIDTH       = scaled(1.3)
-const MARKER_SIZE      = scaled(7)
+const panel_spinewidth = scaled(1.8)
+const LINE_WIDTH       = scaled(2.5)
+const MARKER_SIZE      = scaled(12)
 const PANEL_COLGAP     = scaled(10)
 const FIG_COLGAP       = scaled(4)
 
-const AXIS_LABEL_SIZE   = scaled(13)
-const TITLE_SIZE        = scaled(12)
-const TICK_LABEL_SIZE   = scaled(10)
-const ANNOTATION_SIZE   = scaled(10)
-const LEGEND_LABEL_SIZE = scaled(9)
-const LEGEND_TITLE_SIZE = scaled(9.5)
+const AXIS_LABEL_SIZE   = scaled(18)
+const TITLE_SIZE        = scaled(16)
+const TICK_LABEL_SIZE   = scaled(16)
+const ANNOTATION_SIZE   = scaled(16)
+const LEGEND_LABEL_SIZE = scaled(16)
+const LEGEND_TITLE_SIZE = scaled(18)
 
 # --- column reducers cannot be serialized; recreate them by index ---
 const COLUMN_REDUCERS = [
