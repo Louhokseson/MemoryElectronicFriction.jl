@@ -164,7 +164,7 @@ style_elems  = [
     LineElement(color = :black, linestyle = :solid, linewidth = 2),
     LineElement(color = :black, linestyle = :dash,  linewidth = 2),
 ]
-style_labels = ["Non-Markovian", "Markovian"]
+style_labels = ["Memory", "Markovian"]
 
 peak_elems  = [LineElement(
     points = [Point2f(0.5, 0), Point2f(0.5, 1)],
