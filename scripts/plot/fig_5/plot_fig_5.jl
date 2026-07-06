@@ -11,18 +11,20 @@ using CairoMakie
 
 # --- styling constants (kept identical to the original plotting script) ---
 const TWO_COLUMN_WIDTH = 481
-const FONT = projectdir("fonts", "MinionPro-Capt.otf")
+const FONT = projectdir("fonts", "dejavu-sans.book.ttf")
 
 const panel_spinewidth = 1.8
+const tick_size = 6
+const subtick_size = 4
 const color_endpt = "#B53A8C"
 const color_mark  = "#3F9DCC"
 const color_md    = "#444444"
 
-const title_fontsize         = 20
-const label_fontsize         = 20
-const tick_fontsize          = 18
-const legend_fontsize        = 18
-const panel_label_fontsize   = 18
+const title_fontsize         = 16
+const label_fontsize         = 18
+const tick_fontsize          = 16
+const legend_fontsize        = 15
+const panel_label_fontsize   = 16
 
 # --- row_xspec logic (identical to the original) ---
 function row_xspec(ν_init)
@@ -32,6 +34,14 @@ function row_xspec(ν_init)
         return (xticks = 0:2:10,        xlims = (-0.5, 10.5))
     else
         return (xticks = 6:3:18,        xlims = (5, 19))
+    end
+end
+
+function row_yspec(ν_init)
+    if ν_init > 10
+        return (yticks = 0:0.2:0.6, ymax = 0.62)
+    else
+        return (yticks = Makie.automatic, ymax = nothing)
     end
 end
 
@@ -85,22 +95,27 @@ for pname in panel_names
     r_idx = parse(Int, parts[2])
     c_idx = parse(Int, parts[3])
 
-    spec = row_xspec(Int(nu_init))
+    spec  = row_xspec(Int(nu_init))
+    yspec = row_yspec(Int(nu_init))
 
     ax = Axis(fig[r_idx + 1, c_idx];
               xticks = spec.xticks,
+              yticks = yspec.yticks,
               xticklabelsize = tick_fontsize,
               yticklabelsize = tick_fontsize,
               xtickalign = 1.0,
               ytickalign = 1.0,
-              xticksmirrored = true,
+              xticksmirrored = false,
               yticksmirrored = true,
-              limits = (spec.xlims[1], spec.xlims[2], -0.05, nothing),
+              limits = (spec.xlims[1], spec.xlims[2], -0.05, yspec.ymax),
               spinewidth = panel_spinewidth,
               xtickwidth = panel_spinewidth,
               ytickwidth = panel_spinewidth,
+              xticksize = tick_size, yticksize = tick_size,
+              yminorticksize = subtick_size,
               xgridvisible = false, ygridvisible = false,
-              xminorticksvisible = false, yminorticksvisible = false)
+              xminorticksvisible = false, yminorticksvisible = true,
+              yminortickalign = 1.0)
 
     # Dashed vertical line at initial vibrational state
     vlines!(ax, [nu_marker]; color = :black, linestyle = :dash, linewidth = 1.8)
@@ -173,7 +188,7 @@ for r_idx in 1:n_rows
     linkyaxes!(axes[r_idx, :]...)
 end
 for r_idx in 1:n_rows, c_idx in 2:n_cols
-    hideydecorations!(axes[r_idx, c_idx]; grid = false, ticks = false)
+    hideydecorations!(axes[r_idx, c_idx]; grid = false, ticks = false, minorticks = false)
 end
 
 # Axis labels
