@@ -341,8 +341,7 @@ function plot_vib_state_distribution_compare(ν_INITIAL_LIST, E_TRANS_eV_LIST,
                     linewidth = 1.8)
 
             if show_md_baseline
-                md_res = res_arith !== nothing ? res_arith :
-                         res_endpt !== nothing ? res_endpt :
+                md_res = res_endpt !== nothing ? res_endpt :
                          res_mark  !== nothing ? res_mark  : nothing
                 if md_res !== nothing
                     h = vib_histogram(md_res.ν_md, ν_max)
@@ -484,7 +483,7 @@ function plot_vib_state_distribution_compare(ν_INITIAL_LIST, E_TRANS_eV_LIST,
     rowgap!(fig.layout, n_rows + 2, 4)
     colgap!(fig.layout, 0)
 
-    return (fig = fig, panel_data = panel_data)
+    return (fig = fig, panel_data = panel_data, show_md_baseline = show_md_baseline)
 end
 
 # ===========================================================================
@@ -547,7 +546,7 @@ h5open(h5_path, "w") do h5
     h5["E_trans_eV_list"] = collect(Float64, E_TRANS_eV_LIST)
     h5["T_focus"] = Float64(300)
     h5["nu_max"] = 18
-    h5["show_md_baseline"] = 0
+    h5["show_md_baseline"] = Int(result.show_md_baseline)
 
     for pd in panel_data
         panel_name = "panel_$(pd.row)_$(pd.col)"
