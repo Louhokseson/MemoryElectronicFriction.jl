@@ -3,7 +3,6 @@ using DrWatson
 
 using HDF5
 using CairoMakie
-using HokseonPlots
 using Colors
 
 # -----------------------------------------------------------------------------
@@ -12,14 +11,15 @@ using Colors
 # -----------------------------------------------------------------------------
 
 # --- styling constants (kept identical to the original plotting script) ---
+const TWO_COLUMN_WIDTH = 481
 const XLIMITS = (-0.2, 11.0)
 const panel_labels = ["(a)", "(b)", "(c)"]
 const panel_spinewidth = 1.8
-const MINION_FONT = projectdir("fonts", "MinionPro-Capt.otf")
+const FONT = projectdir("fonts", "dejavu-sans.book.ttf")
 
-const AXIS_LABEL_SIZE   = 24
-const TICK_LABEL_SIZE   = 20
-const ANNOTATION_SIZE   = 22
+const AXIS_LABEL_SIZE   = 18
+const TICK_LABEL_SIZE   = 16
+const ANNOTATION_SIZE   = 18
 const LEGEND_LABEL_SIZE = 16
 const LEGEND_TITLE_SIZE = 18
 
@@ -43,9 +43,9 @@ C_FERMI_LABEL = isinteger(C_FERMI) ? Int(C_FERMI) : C_FERMI
 panel_names = ["panel_a", "panel_b", "panel_c"]
 
 fig = Figure(
-    size = (HokseonPlots.TWO_COLUMN_WIDTH, HokseonPlots.TWO_COLUMN_WIDTH),
+    size = (TWO_COLUMN_WIDTH, TWO_COLUMN_WIDTH),
     figure_padding = (2, 6, 2, 2),
-    fonts = (; regular = MINION_FONT),
+    fonts = (; regular = FONT),
 )
 
 axes = Axis[]
@@ -85,7 +85,7 @@ for (k, Γ) in enumerate(Γ_values)
     y_bot = panel_ymin / 1.2
     y_top = panel_ymax * 10.0^(α * D_dec)
 
-    ax = MyAxis(fig[k, 2];
+    ax = Axis(fig[k, 2];
         xlabel           = is_bottom ? "ħω  (eV)" : "",
         ylabel           = "",
         yscale           = log10,
@@ -164,7 +164,7 @@ style_elems  = [
     LineElement(color = :black, linestyle = :solid, linewidth = 2),
     LineElement(color = :black, linestyle = :dash,  linewidth = 2),
 ]
-style_labels = ["Frequency", "Markovian"]
+style_labels = ["Non-Markovian", "Markovian"]
 
 peak_elems  = [LineElement(
     points = [Point2f(0.5, 0), Point2f(0.5, 1)],
@@ -186,13 +186,13 @@ legend_kwargs = (
     patchlabelgap = 4,
     padding       = (2, 2, 1, 1),
     labelsize     = LEGEND_LABEL_SIZE,
-    labelfont     = MINION_FONT,
+    labelfont     = FONT,
 )
 
 legend_titles = ["x  (Å)", "Friction", "Peak"]
 for (r, t) in enumerate(legend_titles)
     Label(legend_grid[r, 1], t; halign = :right,
-          fontsize = LEGEND_TITLE_SIZE, font = MINION_FONT)
+          fontsize = LEGEND_TITLE_SIZE, font = FONT)
 end
 
 Legend(legend_grid[1, 2], color_elems, color_labels; legend_kwargs...)
