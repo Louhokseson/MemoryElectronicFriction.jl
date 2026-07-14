@@ -3,7 +3,7 @@
 # ==============================================================================
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 import Pkg; Pkg.precompile()
 
@@ -20,7 +20,7 @@ using Colors
 
 HokseonAssistant.julia_build_procs()
 
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using NQCModels.QuantumModels
 @everywhere using NQCModels
@@ -171,7 +171,7 @@ for (k, Γ) in enumerate(Γ_VALUES)
         # Peak-position marker (analytical particle–hole threshold):
         #     ħω*(x) = |h(x)| + C_FERMI·k_BT   (level ϵₐ(x)=h(x) excited across the
         # saturated Fermi edge). Drawn later as a dotted vertical line at ω*.
-        h_ev   = abs(ustrip(auconvert(u"eV", HokseonReproduce.adsorbate_h(position_au, adsorbate_m))))
+        h_ev   = abs(ustrip(auconvert(u"eV", MemoryElectronicFriction.adsorbate_h(position_au, adsorbate_m))))
         ω_peak = h_ev + C_FERMI * kT_eV
 
         # Track the positive-value range (log axis) across all curves so the

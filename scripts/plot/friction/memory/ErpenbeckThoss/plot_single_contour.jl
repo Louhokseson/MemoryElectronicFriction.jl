@@ -1,11 +1,11 @@
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project
+@quickactivate "MemoryElectronicFriction" ## Activate project
 using HDF5
 using Statistics
 using LaTeXStrings
 using CairoMakie
 using HokseonPlots
-using HokseonReproduce
+using MemoryElectronicFriction
 using Unitful, UnitfulAtomic
 using NQCModels.QuantumModels
 
@@ -183,8 +183,8 @@ Colorbar(fig[1, 2], hm1, label = L"\mathcal{K}\ (\mathrm{u⋅ps^{-1}})",
 
 # ---- Annotation block ----
 adsorbate_ref = ErpenbeckThossAdsorbate(Γ = austrip(Gamma_eV * u"eV"))
-h_eV_at = x -> ustrip(HokseonReproduce.adsorbate_h(austrip(x * u"Å"), adsorbate_ref) * auconvert(u"eV", 1))
-Δ_eV_at = x -> ustrip(HokseonReproduce.Δ(austrip(x * u"Å"), adsorbate_ref) * auconvert(u"eV", 1))
+h_eV_at = x -> ustrip(MemoryElectronicFriction.adsorbate_h(austrip(x * u"Å"), adsorbate_ref) * auconvert(u"eV", 1))
+Δ_eV_at = x -> ustrip(MemoryElectronicFriction.Δ(austrip(x * u"Å"), adsorbate_ref) * auconvert(u"eV", 1))
 
 info_str = "ErpenbeckThossAdsorbate\n" *
            "Γ = $(Gamma_eV) eV,  T = $(T_K) K\n" *

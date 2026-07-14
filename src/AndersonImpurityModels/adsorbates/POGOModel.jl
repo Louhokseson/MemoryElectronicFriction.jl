@@ -13,7 +13,7 @@ Degrees of freedom:
 
 Same physical model and parameters as NOAuAdsorbate — use POGOModel
 when you need the NQCModels interface (e.g. Markovian MDEF via NQCDynamics),
-and NOAuAdsorbate when you need the HokseonReproduce friction interface.
+and NOAuAdsorbate when you need the MemoryElectronicFriction friction interface.
 """
 
 # --- primitive potential types ---

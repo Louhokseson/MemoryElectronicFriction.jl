@@ -9,7 +9,7 @@
 #   ads = build_adsorbate(Val(:NOAu), md_params)
 #   ΔE  = delta_energy(:NOAu, ads, traj, dt_au; ω_au=..., T_au=...)
 
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using FFTW: bfft

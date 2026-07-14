@@ -1,6 +1,6 @@
 using DrWatson
 
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using Unitful, UnitfulAtomic
 using QuadGK
@@ -12,10 +12,10 @@ using Unitful, UnitfulAtomic
 colorscheme = ColorScheme(parse.(Colorant, ["#045275", "#089099", "#7CCBA2", "#FCDE9C", "#F0746E", "#DC3977", "#7C1D6F"]));
 colormap = HokseonPlots.NICECOLORS;
 
-# making sure that HokseonReproduce module is loaded only once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded only once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 

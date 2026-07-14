@@ -1,5 +1,5 @@
 module FrequencyLambda
-import ..HokseonReproduce, ..DistributionTools, ..WeightedEHPDOS
+import ..MemoryElectronicFriction, ..DistributionTools, ..WeightedEHPDOS
 using ..DistributionTools: FermiDirac, ∂fermi
 using ..AndersonImpurityModels: WideBandLimitModel, WideBandLimitModel1DOF, WideBandLimitModelNDOF, FrequencyDependentModel, FrequencyDependentModel1DOF, BrandbygeAdsorbate, AndersonImpurityModel, AndersonImpurityModel1DOF, AndersonImpurityModelNDOF
 using StaticArrays: SVector
@@ -339,7 +339,7 @@ function Lambda(energy::Real, bath, adsorbate_m::AndersonImpurityModel, position
 
     
     Γ(ω₁,ω₂) = WeightedEHPDOS.Gamma(ω₁, ω₂, bath, adsorbate_m, position)
-    f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (HokseonReproduce.PDF.(ω + ω₁,fermidirac) - HokseonReproduce.PDF.(ω₁,fermidirac))
+    f(ω₁, ω) = Γ(ω₁, ω + ω₁) * (MemoryElectronicFriction.PDF.(ω + ω₁,fermidirac) - MemoryElectronicFriction.PDF.(ω₁,fermidirac))
 
     #bounds = effective_bounds(bath, fermidirac, energy)
     sing_pts = effective_sing_pts(bath, fermidirac, energy)
@@ -405,7 +405,7 @@ function Lambda(energy_vec::AbstractVector, bath, adsorbate_m::AndersonImpurityM
         local_temp   = temperature
         local_ef     = fermi_level
         local_FD     = DistributionTools.FermiDirac(local_ef, local_temp)
-        local_PDF    = HokseonReproduce.PDF
+        local_PDF    = MemoryElectronicFriction.PDF
         local_Gamma  = (ω1, ω2) -> WeightedEHPDOS.Gamma(ω1, ω2, local_bath, local_model, local_pos)
         
         # 2. Precompile/Warm-up
@@ -458,11 +458,11 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModel1DOF, position::Real ,t
     r = position
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
-    Δ = HokseonReproduce.Δ(r, adsorbate_m)
+    h = MemoryElectronicFriction.adsorbate_h(r, adsorbate_m)
+    Δ = MemoryElectronicFriction.Δ(r, adsorbate_m)
 
-    dϵₐdx = HokseonReproduce.dϵₐ_dr(r, adsorbate_m)
-    dΔdx = HokseonReproduce.dΔ_dr(r, adsorbate_m)
+    dϵₐdx = MemoryElectronicFriction.dϵₐ_dr(r, adsorbate_m)
+    dΔdx = MemoryElectronicFriction.dΔ_dr(r, adsorbate_m)
 
     A(ϵ) =  2 .* Δ ./ ((ϵ .- h).^2 .+ Δ.^2)
 
@@ -470,7 +470,7 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModel1DOF, position::Real ,t
     # zero so log-spaced grids near 0 don't suffer floating-point cancellation
     # in the explicit n_F-difference.
     fermi_diff(ω, ω₁) = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
-    (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
+    (MemoryElectronicFriction.PDF(ω + ω₁, fermidirac) - MemoryElectronicFriction.PDF(ω₁, fermidirac)) / ω
 
     kernel(ω₁) = A(ω₁) .* A(ω + ω₁) .* (dϵₐdx + (ω₁ .- h) .* dΔdx ./ Δ) .* (dϵₐdx + (ω₁ .+ ω .- h) .* dΔdx ./ Δ) .* fermi_diff(ω, ω₁)
 
@@ -495,7 +495,7 @@ function Lambdaₖₗₗₖ(ω₁::Real, ω::Real, h::Real, Δ::Real,
     # exact zero so log-spaced grids near 0 don't suffer floating-point
     # cancellation in the explicit n_F-difference.
     fermi_diff = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
-        (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
+        (MemoryElectronicFriction.PDF(ω + ω₁, fermidirac) - MemoryElectronicFriction.PDF(ω₁, fermidirac)) / ω
 
     return Jₐ(ω₁) * Jₐ(ω + ω₁) * (Fₖ(ω₁) * Fₗ(ω₁ + ω) + Fₗ(ω₁) * Fₖ(ω₁ + ω)) * fermi_diff / 4π
 end
@@ -517,11 +517,11 @@ function Lambda(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configuration::SV
     Lambda_mat = zeros(ndof, ndof)
 
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
-    h = HokseonReproduce.adsorbate_h(configuration, adsorbate_m)
-    Δ = HokseonReproduce.Δ(configuration, adsorbate_m)
+    h = MemoryElectronicFriction.adsorbate_h(configuration, adsorbate_m)
+    Δ = MemoryElectronicFriction.Δ(configuration, adsorbate_m)
 
-    dhdx_vec = HokseonReproduce.dh_dx(configuration, adsorbate_m)
-    dΔdx_vec = HokseonReproduce.dΔ_dx(configuration, adsorbate_m)
+    dhdx_vec = MemoryElectronicFriction.dh_dx(configuration, adsorbate_m)
+    dΔdx_vec = MemoryElectronicFriction.dΔ_dx(configuration, adsorbate_m)
 
     for k in 1:ndof
         for l in k:ndof
@@ -551,11 +551,11 @@ function LambdaAveraged(ω::Real, adsorbate_m::WideBandLimitModelNDOF, configura
     diagonal_sum = 0.0
 
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
-    h = HokseonReproduce.adsorbate_h(configuration, adsorbate_m)
-    Δ = HokseonReproduce.Δ(configuration, adsorbate_m)
+    h = MemoryElectronicFriction.adsorbate_h(configuration, adsorbate_m)
+    Δ = MemoryElectronicFriction.Δ(configuration, adsorbate_m)
 
-    dhdx_vec = HokseonReproduce.dh_dx(configuration, adsorbate_m)
-    dΔdx_vec = HokseonReproduce.dΔ_dx(configuration, adsorbate_m)
+    dhdx_vec = MemoryElectronicFriction.dh_dx(configuration, adsorbate_m)
+    dΔdx_vec = MemoryElectronicFriction.dΔ_dx(configuration, adsorbate_m)
 
     for k in 1:ndof
         diagonal_sum += quadgk(
@@ -585,13 +585,13 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Re
     r = position
     fermidirac = DistributionTools.FermiDirac(fermi_level, temperature)
 
-    ϵₐ(ω₁) = HokseonReproduce.ϵₐ(r, ω₁, adsorbate_m)
-    Δ(ω₁) = HokseonReproduce.Δ(r, ω₁, adsorbate_m)
+    ϵₐ(ω₁) = MemoryElectronicFriction.ϵₐ(r, ω₁, adsorbate_m)
+    Δ(ω₁) = MemoryElectronicFriction.Δ(r, ω₁, adsorbate_m)
 
-    A = HokseonReproduce.coupling_A(r, adsorbate_m)
-    dAdr = HokseonReproduce.dA_dr(r, adsorbate_m)
-    dhdx = HokseonReproduce.dh_dr(r, adsorbate_m)
-    h = HokseonReproduce.adsorbate_h(r, adsorbate_m)
+    A = MemoryElectronicFriction.coupling_A(r, adsorbate_m)
+    dAdr = MemoryElectronicFriction.dA_dr(r, adsorbate_m)
+    dhdx = MemoryElectronicFriction.dh_dr(r, adsorbate_m)
+    h = MemoryElectronicFriction.adsorbate_h(r, adsorbate_m)
 
     Jₐ(ϵ) =  2 .* Δ(ϵ) ./ ((ϵ .- ϵₐ(ϵ)).^2 .+ Δ(ϵ).^2)
 
@@ -599,7 +599,7 @@ function Lambda(ω::Real, adsorbate_m::FrequencyDependentModel1DOF, position::Re
     # exact zero so log-spaced grids near 0 don't suffer floating-point
     # cancellation in the explicit n_F-difference.
     fermi_diff(ω, ω₁) = abs(ω) < 1e-12 ? ∂fermi(ω₁, fermidirac) :
-        (HokseonReproduce.PDF(ω + ω₁, fermidirac) - HokseonReproduce.PDF(ω₁, fermidirac)) / ω
+        (MemoryElectronicFriction.PDF(ω + ω₁, fermidirac) - MemoryElectronicFriction.PDF(ω₁, fermidirac)) / ω
 
     kernel(ω₁) = Jₐ(ω₁) .* Jₐ(ω + ω₁) .* (dhdx + (ω₁ .- h) .* 2 ./ A .* dAdr) .* (dhdx + (ω₁ + ω .- h) .* 2 ./ A .* dAdr) .* fermi_diff(ω, ω₁)
 

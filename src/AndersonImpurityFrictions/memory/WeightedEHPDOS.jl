@@ -7,7 +7,7 @@
 """
 
 module WeightedEHPDOS
-import ..AndersonImpurityModels, ..HokseonReproduce, ..ImaginaryGreens, ..dot
+import ..AndersonImpurityModels, ..MemoryElectronicFriction, ..ImaginaryGreens, ..dot
 using ..AndersonImpurityModels: AndersonImpurityModel
 
 
@@ -25,7 +25,7 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     """
 
 
-    coupling_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
+    coupling_vec = MemoryElectronicFriction.Vak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
     
@@ -69,7 +69,7 @@ function V′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
     """
 
     V′_matrix = zeros(Float64, length(bath.bathstates)+1, length(bath.bathstates)+1)
-    coupling_k_vector = HokseonReproduce.V′ak(bath, adsorbate_m, position)
+    coupling_k_vector = MemoryElectronicFriction.V′ak(bath, adsorbate_m, position)
 
 
     V′_matrix[1,2:end] = coupling_k_vector
@@ -102,9 +102,9 @@ end
 
 function Gamma(energy_1::Real, energy_2::Real, bath, adsorbate_m::AndersonImpurityModel, position::Real)
 
-    V′_vec = HokseonReproduce.V′ak(bath, adsorbate_m, position)
+    V′_vec = MemoryElectronicFriction.V′ak(bath, adsorbate_m, position)
 
-    V_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
+    V_vec = MemoryElectronicFriction.Vak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
 

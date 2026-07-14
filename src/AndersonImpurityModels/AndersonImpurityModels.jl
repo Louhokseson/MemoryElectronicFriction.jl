@@ -8,7 +8,7 @@ module AndersonImpurityModels
 
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
-using ..HokseonReproduce: HokseonReproduce, DistributionTools 
+using ..MemoryElectronicFriction: MemoryElectronicFriction, DistributionTools 
 using NQCModels
 using NQCModels.BathDiscretisations: WideBandBathDiscretisation
 using NQCModels.QuantumModels
@@ -26,7 +26,7 @@ using LinearAlgebra: LinearAlgebra, Hermitian
 using StaticArrays: SMatrix, SVector
 using DrWatson
 
-abstract type AndersonImpurityModel <: HokseonReproduce.Model end
+abstract type AndersonImpurityModel <: MemoryElectronicFriction.Model end
 
 # --- grouped by DOF ---
 abstract type AndersonImpurityModel1DOF <: AndersonImpurityModel end

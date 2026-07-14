@@ -55,23 +55,23 @@ function get_struct(m::Module)
 end
 
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 # Example usage
-m = HokseonReproduce
-T = HokseonReproduce.Model
+m = MemoryElectronicFriction
+T = MemoryElectronicFriction.Model
 module_names=names(m)
 
 i = module_names[2]
 getfield(m, i)
 getfield(m, i) <: T
-M = get_childrenmodule(HokseonReproduce)
+M = get_childrenmodule(MemoryElectronicFriction)
 
 
 

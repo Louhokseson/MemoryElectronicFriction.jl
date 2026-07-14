@@ -1,6 +1,6 @@
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using NQCModels
 using NQCDynamics
@@ -17,7 +17,7 @@ HokseonAssistant.julia_build_procs()
 # so we only need the worker-side imports the memory `delta_energy` would
 # otherwise require — keeping the @everywhere lines lets this script also be
 # used to compare against the memory variant in the same session.
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 

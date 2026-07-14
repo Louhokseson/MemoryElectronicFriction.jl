@@ -1,4 +1,4 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using DrWatson
 using Unitful, UnitfulAtomic
 using NQCModels
@@ -59,7 +59,7 @@ end
 
 
 @testset "R_ak_ω₁_vector" begin
-    V_vec = HokseonReproduce.Vak(bath, adsorbate_m, position_au)
+    V_vec = MemoryElectronicFriction.Vak(bath, adsorbate_m, position_au)
     bathstates = collect(bath.bathstates)
 
     N = length(bathstates) # bath number of states

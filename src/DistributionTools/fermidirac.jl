@@ -3,7 +3,7 @@ Base.@kwdef struct FermiDirac <: Distribution
     T::AbstractFloat = austrip(300.0 * u"K")  # Temperature in Kelvin
 end
 
-function HokseonReproduce.PDF(ϵ::Real, d::FermiDirac)
+function MemoryElectronicFriction.PDF(ϵ::Real, d::FermiDirac)
     """
     Fermi-Dirac probability density function
 
@@ -17,7 +17,7 @@ function ∂fermi(ϵ::Real, d::FermiDirac)
     Derivative of Fermi-Dirac distribution with respect to energy ϵ
     输入:
         ϵ : Energy value
-        d : FermiDirac distribution object from HokseonReproduce.DistributionTools
+        d : FermiDirac distribution object from MemoryElectronicFriction.DistributionTools
     输出:
         ∂f : Derivative of Fermi-Dirac distribution at energy ϵ
     """

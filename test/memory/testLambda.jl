@@ -1,9 +1,9 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using NQCModels
 using FiniteDiff
 using Test
 
-@info "Path of the HokseonReproduce" pathof(HokseonReproduce)
+@info "Path of the MemoryElectronicFriction" pathof(MemoryElectronicFriction)
 
 @testset "Singularities for Lambda Λ" begin
     bandmin = -5.0

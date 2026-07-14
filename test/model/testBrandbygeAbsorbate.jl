@@ -1,4 +1,4 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using FiniteDiff
 using Unitful, UnitfulAtomic
 using Test
@@ -15,11 +15,11 @@ end
 @testset "BrandbygeAdsorbate (DOS)" begin
     r = 1.0
     m = AndersonImpurityModels.BrandbygeAdsorbate()
-    lorentzian = HokseonReproduce.DOS(r, m)
+    lorentzian = MemoryElectronicFriction.DOS(r, m)
 
     # evaluate the DOS
     ω = range(0, 6, length=1000)
-    dos = HokseonReproduce.PDF.(ω, lorentzian)
+    dos = MemoryElectronicFriction.PDF.(ω, lorentzian)
 
     @test length(dos) == 1000
     @test all(dos .>= 0)
@@ -30,9 +30,9 @@ end
     r = 5.0
     m = AndersonImpurityModels.BrandbygeAdsorbate()
 
-    Δ′_analytical = HokseonReproduce.dΔ_dr(r, m)
+    Δ′_analytical = MemoryElectronicFriction.dΔ_dr(r, m)
 
-    Δ′_numerical = FiniteDiff.finite_difference_derivative(x -> HokseonReproduce.DOS(x, m).Γ, r)
+    Δ′_numerical = FiniteDiff.finite_difference_derivative(x -> MemoryElectronicFriction.DOS(x, m).Γ, r)
 
     @info "Analytical dΔ/dr: $Δ′_analytical"
     @info "Numerical dΔ/dr: $Δ′_numerical"

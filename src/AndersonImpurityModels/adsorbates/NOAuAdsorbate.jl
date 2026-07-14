@@ -67,13 +67,13 @@ function U₁(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
 end
 
 
-function HokseonReproduce.Δ(z::Real, adsorbate_m::NOAuAdsorbate)
+function MemoryElectronicFriction.Δ(z::Real, adsorbate_m::NOAuAdsorbate)
     Vk = V_k(z, adsorbate_m)
     return π * Vk^2
 end
 
 
-function HokseonReproduce.adsorbate_h(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
+function MemoryElectronicFriction.adsorbate_h(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
     U₀_val = U₀(r, z, adsorbate_m)
     U₁_val = U₁(r, z, adsorbate_m)
     return U₁_val - U₀_val
@@ -107,7 +107,7 @@ Returns `SA[∂h/∂r, ∂h/∂z]`.
 ∂h/∂z  = ∂U₁/∂z - ∂U₀/∂z
 ```
 """
-function HokseonReproduce.dh_dx(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
+function MemoryElectronicFriction.dh_dx(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
     a₁, r₁, D₁, a₂, z₁, D₂ = getfield.(Ref(adsorbate_m), (:a₁, :r₁, :D₁, :a₂, :z₁, :D₂))
     a₀, r₀, D₀, b₀, z₀ = getfield.(Ref(adsorbate_m), (:a₀, :r₀, :D₀, :b₀, :z₀))
     # d/dr: only Morse(r - rᵢ) terms contribute
@@ -138,7 +138,7 @@ so the `r` component is identically zero:
 ∂Δ/∂z = 2π Vₖ(z) · dVₖ/dz,   dVₖ/dz = -Vₖ/ã · sech²(z/ã)
 ```
 """
-function HokseonReproduce.dΔ_dx(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
+function MemoryElectronicFriction.dΔ_dx(r::Real, z::Real, adsorbate_m::NOAuAdsorbate)
     # Δ = π * V_k(z)² depends only on z, so dΔ/dr = 0
     # dΔ/dz = 2π * V_k * dV_k/dz
     Vk  = V_k(z, adsorbate_m)
@@ -149,7 +149,7 @@ end
 # SVector{2} overloads — rz = SA[r, z]
 U₀(rz::SVector{2}, m::NOAuAdsorbate)                              = U₀(rz[1], rz[2], m)
 U₁(rz::SVector{2}, m::NOAuAdsorbate)                              = U₁(rz[1], rz[2], m)
-HokseonReproduce.adsorbate_h(rz::SVector{2}, m::NOAuAdsorbate)    = HokseonReproduce.adsorbate_h(rz[1], rz[2], m)
-HokseonReproduce.Δ(rz::SVector{2}, m::NOAuAdsorbate)              = HokseonReproduce.Δ(rz[2], m)
-HokseonReproduce.dh_dx(rz::SVector{2}, m::NOAuAdsorbate)          = HokseonReproduce.dh_dx(rz[1], rz[2], m)
-HokseonReproduce.dΔ_dx(rz::SVector{2}, m::NOAuAdsorbate)          = HokseonReproduce.dΔ_dx(rz[1], rz[2], m)
+MemoryElectronicFriction.adsorbate_h(rz::SVector{2}, m::NOAuAdsorbate)    = MemoryElectronicFriction.adsorbate_h(rz[1], rz[2], m)
+MemoryElectronicFriction.Δ(rz::SVector{2}, m::NOAuAdsorbate)              = MemoryElectronicFriction.Δ(rz[2], m)
+MemoryElectronicFriction.dh_dx(rz::SVector{2}, m::NOAuAdsorbate)          = MemoryElectronicFriction.dh_dx(rz[1], rz[2], m)
+MemoryElectronicFriction.dΔ_dx(rz::SVector{2}, m::NOAuAdsorbate)          = MemoryElectronicFriction.dΔ_dx(rz[1], rz[2], m)

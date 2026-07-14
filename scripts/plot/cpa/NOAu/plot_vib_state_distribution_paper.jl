@@ -1,5 +1,5 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using HDF5
 using LinearAlgebra: eigen
@@ -8,7 +8,7 @@ using StaticArrays: SA
 using CairoMakie
 using ColorSchemes
 
-using HokseonReproduce
+using MemoryElectronicFriction
 using HokseonPlots
 using HokseonAssistant
 using QuadGK: quadgk

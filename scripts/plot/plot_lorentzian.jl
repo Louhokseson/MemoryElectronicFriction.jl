@@ -1,10 +1,10 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded only once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded only once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 # Plotting packages
@@ -27,7 +27,7 @@ function plot_lorentzian(center_au, width_au)
     lorentzian = DistributionTools.Lorentzian(center_au, width_au)
 
 
-    lorentzian_pdf_au = HokseonReproduce.PDF.(energies_au,lorentzian)
+    lorentzian_pdf_au = MemoryElectronicFriction.PDF.(energies_au,lorentzian)
 
     lorentzian_pdf = ustrip.(auconvert.(u"eV^-1",lorentzian_pdf_au)) # Convert to eV⁻¹
 

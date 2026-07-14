@@ -47,10 +47,10 @@ r: distance from the impurity to the reservoir
 
 adsorbate_m: ErpenbeckThossAdsorbate
 """
-function HokseonReproduce.DOS(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
-    h = HokseonReproduce.adsorbate_h(r,adsorbate_m)
+function MemoryElectronicFriction.DOS(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
+    h = MemoryElectronicFriction.adsorbate_h(r,adsorbate_m)
 
-    Δ = HokseonReproduce.Δ(r,adsorbate_m)
+    Δ = MemoryElectronicFriction.Δ(r,adsorbate_m)
 
     lorentzian = DistributionTools.Lorentzian(h, Δ)
 
@@ -79,7 +79,7 @@ function eigenenergy(model::ErpenbeckThossAdsorbate, n)
     return Eₙ * ω
 end
 
-function HokseonReproduce.adsorbate_h(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
+function MemoryElectronicFriction.adsorbate_h(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
     Dₑ, x₀, a, D₁, D₂, x₀′, a′, V∞, c = getfield.(Ref(adsorbate_m), (:Dₑ, :x₀, :a, :D₁, :D₂, :x₀′, :a′, :V∞, :c))
     if isnothing(c)
         c = -eigenenergy(adsorbate_m, 0)
@@ -107,7 +107,7 @@ Therefore, we arrive to
     Δ = π|V|²∑ₖδ(ϵ - ϵₖ) = π|V|²ρ₀ = πVₖ^2.   [unit eV]
 
 """
-function HokseonReproduce.Δ(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
+function MemoryElectronicFriction.Δ(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
     q, ã, x̃, V̄ₖ = getfield.(Ref(adsorbate_m), (:q, :ã, :x̃, :V̄ₖ))
 
     Vₖ = V̄ₖ * ((1-q)/2*(1 - tanh((r-x̃)/ã)) + q)
@@ -122,7 +122,7 @@ adsorbate_m: ErpenbeckThossAdsorbate model
 
 return: dΔ/dr 
 """
-function HokseonReproduce.dΔ_dr(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
+function MemoryElectronicFriction.dΔ_dr(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
     q, ã, x̃, V̄ₖ = getfield.(Ref(adsorbate_m), (:q, :ã, :x̃, :V̄ₖ))
 
     V = V̄ₖ * ((1-q)/2 * (1 - tanh((r-x̃)/ã)) + q)
@@ -141,7 +141,7 @@ adsorbate_m: ErpenbeckThossAdsorbate model
 
 return: dϵₐ/dr 
 """
-function HokseonReproduce.dϵₐ_dr(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
+function MemoryElectronicFriction.dϵₐ_dr(r::Real, adsorbate_m::ErpenbeckThossAdsorbate)
     Dₑ, x₀, a, D₁, D₂, x₀′, a′ = getfield.(Ref(adsorbate_m), (:Dₑ, :x₀, :a, :D₁, :D₂, :x₀′, :a′))
 
     dU₀dr = 2Dₑ * (exp(-a*(r-x₀)) - 1) * (-a) * exp(-a*(r-x₀))

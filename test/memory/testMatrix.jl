@@ -1,4 +1,4 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using NQCModels
 using FiniteDiff
 using Test
@@ -11,7 +11,7 @@ function V′_numerical(bath::WideBandBathDiscretisation, adsorbate_m::Brandbyge
     nstates = length(bath.bathstates)
     height = nstates / (bandmax - bandmin)
 
-    Δ_analytical(r) = HokseonReproduce.DOS(r, adsorbate_m).Γ
+    Δ_analytical(r) = MemoryElectronicFriction.DOS(r, adsorbate_m).Γ
 
     V_analytical(r) = sqrt(Δ_analytical(r) / (height * pi)) .* (weights)
 
@@ -47,7 +47,7 @@ end
 end
 
 
-@testset "R_matrix coordinate check with HokseonReproduce" begin
+@testset "R_matrix coordinate check with MemoryElectronicFriction" begin
 
     ## setup
     energy = 1:5
@@ -59,7 +59,7 @@ end
     bath = NQCModels.FullGaussLegendre(nstates, bandmin, bandmax)
     position = 1.0  # Example position
     bathstates = collect(bath.bathstates)
-    coupling_vec = HokseonReproduce.Vak(bath, adsorbate_m, position)
+    coupling_vec = MemoryElectronicFriction.Vak(bath, adsorbate_m, position)
 
 
     ## test evaulation

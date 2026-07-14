@@ -8,7 +8,7 @@ module AndersonImpurityFrictions
 
 # Linking the current module to the parent module 
 # (parent module has exported its older silbling module-Distributions)
-using ..HokseonReproduce: HokseonReproduce, DistributionTools , AndersonImpurityModels
+using ..MemoryElectronicFriction: MemoryElectronicFriction, DistributionTools , AndersonImpurityModels
 using ..AndersonImpurityModels: AndersonImpurityModel
 using LinearAlgebra: dot
 # we use the parent module's abstract type Model and the broadcastable function
@@ -22,7 +22,7 @@ using LinearAlgebra: LinearAlgebra, Hermitian
 using StaticArrays: SMatrix, SVector
 using DrWatson
 
-abstract type AndersonImpurityFriction <: HokseonReproduce.Friction end
+abstract type AndersonImpurityFriction <: MemoryElectronicFriction.Friction end
 
 abstract type AndersonImpurityMemoryFriction <: AndersonImpurityFriction end
 

@@ -9,7 +9,7 @@ Base.@kwdef struct BrandbygeAdsorbate <: WideBandLimitModel1DOF
 end
 
 
-function HokseonReproduce.DOS(r::Real, m::BrandbygeAdsorbate)
+function MemoryElectronicFriction.DOS(r::Real, m::BrandbygeAdsorbate)
     """
     DOS of the impurity follows the equation (22 a,b)
 
@@ -27,7 +27,7 @@ function HokseonReproduce.DOS(r::Real, m::BrandbygeAdsorbate)
     return lorentzian
 end
 
-function HokseonReproduce.dϵₐ_dr(r::Real, m::BrandbygeAdsorbate)
+function MemoryElectronicFriction.dϵₐ_dr(r::Real, m::BrandbygeAdsorbate)
     """
     Centre of the Lorentzian for the Brandbyge adsorbate model.
     
@@ -40,7 +40,7 @@ function HokseonReproduce.dϵₐ_dr(r::Real, m::BrandbygeAdsorbate)
     return m.α * m.C * exp(-m.α * r)
 end
 
-function HokseonReproduce.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
+function MemoryElectronicFriction.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
     """
     Broadening function for the Brandbyge adsorbate model.
     
@@ -52,7 +52,7 @@ function HokseonReproduce.dΔ_dr(r::Real, m::BrandbygeAdsorbate)
     return -m.β * m.Δ₀ * exp(-m.β * r)
 end
 
-function HokseonReproduce.Ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function MemoryElectronicFriction.Ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
     Ak : Calculate the Ak coupling strength between impurity and bath in 
          second quantised Newns-Anderson Hamiltonian.
@@ -69,7 +69,7 @@ function HokseonReproduce.Ak(bath::WideBandBathDiscretisation, adsorbate_m::Bran
     width = bath.bathstates[end] - bath.bathstates[1]
     height = Nstates / width 
 
-    lorentzian = HokseonReproduce.DOS(position, adsorbate_m)
+    lorentzian = MemoryElectronicFriction.DOS(position, adsorbate_m)
 
     Δ = lorentzian.Γ # Lorentzian width aka hybridisation (eV)
 
@@ -80,7 +80,7 @@ function HokseonReproduce.Ak(bath::WideBandBathDiscretisation, adsorbate_m::Bran
     return Ak_vec
 end
 
-function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function MemoryElectronicFriction.Vak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
     Vak : Calculate the Vak vector for the constant bath and BrandbygeAdsorbate model 
           incoprorating the discretisation weights.
@@ -92,7 +92,7 @@ function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
     Returns a vector of size (length(bath.bathstates),)
     """
 
-    Ak_vec = HokseonReproduce.Ak(bath, adsorbate_m, position)
+    Ak_vec = MemoryElectronicFriction.Ak(bath, adsorbate_m, position)
 
     ā = 1 # coupling resale (eV^{-1/2})
 
@@ -101,7 +101,7 @@ function HokseonReproduce.Vak(bath::WideBandBathDiscretisation, adsorbate_m::Bra
     return Vak_vec
 end
 
-function HokseonReproduce.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
+function MemoryElectronicFriction.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::BrandbygeAdsorbate, position::Real)
     """
     V′ak : Calculate the V′ak vector for the constant bath and BrandbygeAdsorbate model.
     
@@ -117,9 +117,9 @@ function HokseonReproduce.V′ak(bath::WideBandBathDiscretisation, adsorbate_m::
     width = bath.bathstates[end] - bath.bathstates[1]
     height = Nstates / width
 
-    Δ = HokseonReproduce.DOS(position, adsorbate_m).Γ
+    Δ = MemoryElectronicFriction.DOS(position, adsorbate_m).Γ
 
-    Δ′ = HokseonReproduce.dΔ_dr(position, adsorbate_m)
+    Δ′ = MemoryElectronicFriction.dΔ_dr(position, adsorbate_m)
 
     V′ak_vec = zeros(Float64, length(bathstates))
 

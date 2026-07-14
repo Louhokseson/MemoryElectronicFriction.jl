@@ -1,4 +1,4 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using Test
 
 include("memory/testRs.jl")

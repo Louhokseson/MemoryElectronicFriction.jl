@@ -1,10 +1,10 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 using HokseonAssistant

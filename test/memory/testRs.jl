@@ -1,4 +1,4 @@
-using HokseonReproduce
+using MemoryElectronicFriction
 using Test
 
 
@@ -12,8 +12,8 @@ coupling_k = 3.0
 @testset "ImaginaryGreens (Raa)" begin
     position = 1.0  # Example position
     result_Raa = AndersonImpurityFrictions.ImaginaryGreens.Raa(energy, adsorbate_m, position)
-    expected_Raa = HokseonReproduce.DOS(position, adsorbate_m)
-    @test result_Raa ≈ HokseonReproduce.PDF(energy, expected_Raa) * 2pi
+    expected_Raa = MemoryElectronicFriction.DOS(position, adsorbate_m)
+    @test result_Raa ≈ MemoryElectronicFriction.PDF(energy, expected_Raa) * 2pi
 end
 
 @testset "ImaginaryGreens (Rak)" begin
@@ -22,7 +22,7 @@ end
     position = 1.0  # Example position
     result_Rak = AndersonImpurityFrictions.ImaginaryGreens.Rak(energy, bathstates, k, adsorbate_m, position, coupling_k)
     
-    Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
+    Jₐ = MemoryElectronicFriction.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
     ϵ = Jₐ.ω0  # Lorentzian centre
 
@@ -31,7 +31,7 @@ end
     Raa_value = AndersonImpurityFrictions.ImaginaryGreens.Raa(energy, adsorbate_m, position)
 
     A48b_bracket_left = Raa_value * (1/(energy - bathstates[k])) 
-    A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * HokseonReproduce.PDF(energy, delta_dist_approx)
+    A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * MemoryElectronicFriction.PDF(energy, delta_dist_approx)
 
     expected_Rak = coupling_k * (A48b_bracket_left + A48b_bracket_right)
 
@@ -47,7 +47,7 @@ end
     coupling_k′ = 5.0
     result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′(energy, bathstates, k, k′, adsorbate_m, position, coupling_k, coupling_k′)
     
-    Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
+    Jₐ = MemoryElectronicFriction.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
     ϵ = Jₐ.ω0  # Lorentzian centre
 
@@ -57,7 +57,7 @@ end
 
     kronecker_delta = k == k′ ? 1.0 : 0.0
 
-    first_term = kronecker_delta * 2pi * HokseonReproduce.PDF(energy, delta_dist_approx_k)
+    first_term = kronecker_delta * 2pi * MemoryElectronicFriction.PDF(energy, delta_dist_approx_k)
 
     """
     Im[G(ret)ak'] starts here
@@ -66,7 +66,7 @@ end
     Raa_value = AndersonImpurityFrictions.ImaginaryGreens.Raa(energy, adsorbate_m, position)
 
     A48b_bracket_left = Raa_value * (1/(energy - bathstates[k′])) 
-    A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * HokseonReproduce.PDF(energy, delta_dist_approx_k′)
+    A48b_bracket_right = Raa_value * (energy - ϵ) / (Δ) * pi * MemoryElectronicFriction.PDF(energy, delta_dist_approx_k′)
 
     expected_Rak′ = coupling_k′ * (A48b_bracket_left + A48b_bracket_right)
 
@@ -85,7 +85,7 @@ end
 
     bracket_first = Raa_value * (energy - ϵ) / (Δ) * (1/(energy - bathstates[k′]))
 
-    bracket_second = Raa_value * pi * HokseonReproduce.PDF(energy, delta_dist_approx_k′)
+    bracket_second = Raa_value * pi * MemoryElectronicFriction.PDF(energy, delta_dist_approx_k′)
 
     Re_Gret_ak′ = - 0.5 * coupling_k′ * (bracket_first + bracket_second)
 
@@ -95,7 +95,7 @@ end
 
 
 
-    second_term = -2 * coupling_k * ( - Re_Gret_ak′ * π * HokseonReproduce.PDF(energy, delta_dist_approx_k) + Im_Gret_ak′ * (1/(energy - bathstates[k])) )
+    second_term = -2 * coupling_k * ( - Re_Gret_ak′ * π * MemoryElectronicFriction.PDF(energy, delta_dist_approx_k) + Im_Gret_ak′ * (1/(energy - bathstates[k])) )
 
 
     expected_Rkk′ = first_term + second_term
@@ -115,9 +115,9 @@ end
     energy_vec = range(0, 6, length=100)  # Example energy range
 
     result_Raa = AndersonImpurityFrictions.ImaginaryGreens.Raa.(energy_vec, adsorbate_m, position)
-    adsorbate_lorentzian = HokseonReproduce.DOS(position, adsorbate_m)
+    adsorbate_lorentzian = MemoryElectronicFriction.DOS(position, adsorbate_m)
 
-    @test sum(result_Raa .≈ HokseonReproduce.PDF.(energy_vec, adsorbate_lorentzian) .* 2pi) == length(energy_vec)
+    @test sum(result_Raa .≈ MemoryElectronicFriction.PDF.(energy_vec, adsorbate_lorentzian) .* 2pi) == length(energy_vec)
 end
 
 @testset "Rak broadcastable" begin
@@ -128,7 +128,7 @@ end
 
     result_Rak = AndersonImpurityFrictions.ImaginaryGreens.Rak.(energy_vec, Ref(bathstates), Ref(k), Ref(adsorbate_m), Ref(position), Ref(coupling_k))
     
-    Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
+    Jₐ = MemoryElectronicFriction.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
     ϵ = Jₐ.ω0  # Lorentzian centre
 
@@ -137,7 +137,7 @@ end
     Raa_value = AndersonImpurityFrictions.ImaginaryGreens.Raa.(energy_vec, Ref(adsorbate_m), Ref(position))
 
     A48b_bracket_left = Raa_value .* (1 ./(energy_vec .- bathstates[k])) 
-    A48b_bracket_right = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx)
+    A48b_bracket_right = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* pi .* MemoryElectronicFriction.PDF.(energy_vec, delta_dist_approx)
 
     expected_Rak = coupling_k .* (A48b_bracket_left .+ A48b_bracket_right)
 
@@ -154,7 +154,7 @@ end
 
     result_Rkk′ = AndersonImpurityFrictions.ImaginaryGreens.Rkk′.(energy_vec, Ref(bathstates), Ref(k), Ref(k′), Ref(adsorbate_m), Ref(position), Ref(coupling_k), Ref(coupling_k′))
     
-    Jₐ = HokseonReproduce.DOS(position, adsorbate_m)
+    Jₐ = MemoryElectronicFriction.DOS(position, adsorbate_m)
     Δ = Jₐ.Γ  # Lorentzian width
     ϵ = Jₐ.ω0  # Lorentzian centre
 
@@ -164,7 +164,7 @@ end
 
     kronecker_delta = k == k′ ? 1.0 : 0.0
 
-    first_term = kronecker_delta .* 2pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k)
+    first_term = kronecker_delta .* 2pi .* MemoryElectronicFriction.PDF.(energy_vec, delta_dist_approx_k)
 
     """
     Im[G(ret)ak'] starts here
@@ -173,7 +173,7 @@ end
     Raa_value = AndersonImpurityFrictions.ImaginaryGreens.Raa.(energy_vec, Ref(adsorbate_m), Ref(position))
 
     A48b_bracket_left = Raa_value .* (1 ./(energy_vec .- bathstates[k′])) 
-    A48b_bracket_right = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k′)
+    A48b_bracket_right = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* pi .* MemoryElectronicFriction.PDF.(energy_vec, delta_dist_approx_k′)
 
     expected_Rak′ = coupling_k′ .* (A48b_bracket_left .+ A48b_bracket_right)
 
@@ -189,12 +189,12 @@ end
     ## Eq 5.25 comes from Understanding of Green's function by Xuexun Lu
 
     bracket_first = Raa_value .* (energy_vec .- ϵ) ./ (Δ) .* (1 ./(energy_vec .- bathstates[k′]))
-    bracket_second = Raa_value .* pi .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k′)
+    bracket_second = Raa_value .* pi .* MemoryElectronicFriction.PDF.(energy_vec, delta_dist_approx_k′)
     Re_Gret_ak′ = - 0.5 .* coupling_k′ .* (bracket_first .+ bracket_second)
     """
     Re[G(ret)ak'] ends here
     """
-    second_term = -2 .* coupling_k .* ( - Re_Gret_ak′ .* π .* HokseonReproduce.PDF.(energy_vec, delta_dist_approx_k) .+ Im_Gret_ak′ .* (1 ./(energy_vec .- bathstates[k])) )
+    second_term = -2 .* coupling_k .* ( - Re_Gret_ak′ .* π .* MemoryElectronicFriction.PDF.(energy_vec, delta_dist_approx_k) .+ Im_Gret_ak′ .* (1 ./(energy_vec .- bathstates[k])) )
     expected_Rkk′ = first_term .+ second_term
 
     

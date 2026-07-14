@@ -1,6 +1,6 @@
 module WideBand
 
-using ..Baths:Baths, HokseonReproduce.Bath
+using ..Baths:Baths, MemoryElectronicFriction.Bath
 
 
 abstract type WideBandBath <: Bath end
@@ -8,7 +8,7 @@ abstract type WideBandBath <: Bath end
 include("wide_band_bath_discretisation.jl")
 
 """
-export functions: using .HokseonReproduce: TrapezoidalRule, ShenviGaussLegendre
+export functions: using .MemoryElectronicFriction: TrapezoidalRule, ShenviGaussLegendre
 """
 
 export TrapezoidalRule

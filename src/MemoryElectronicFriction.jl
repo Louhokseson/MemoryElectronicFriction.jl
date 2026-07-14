@@ -1,4 +1,4 @@
-module HokseonReproduce
+module MemoryElectronicFriction
 
 using Reexport: @reexport
 
@@ -118,5 +118,5 @@ include("IO/IO.jl")
 @reexport using .IO
 
 # @reexport makes sure that you could call Distributions.function() directly
-# without having to call HokseonReproduce.Distributions.function()
+# without having to call MemoryElectronicFriction.Distributions.function()
 end # module

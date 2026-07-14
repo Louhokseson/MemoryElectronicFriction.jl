@@ -1,10 +1,10 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 using CairoMakie
@@ -27,11 +27,11 @@ adsorbate_m = AndersonImpurityModels.BrandbygeAdsorbate()
 
 bath = NQCModels.TrapezoidalRule(nstates, bandmin, bandmax)
 #A′ =  AndersonImpurityFrictions.WeightedEHPDOS.A′_matrix(bath, adsorbate_m, position)
-#HokseonReproduce.A′ak(bath,adsorbate_m, position)
+#MemoryElectronicFriction.A′ak(bath,adsorbate_m, position)
 
 
 
-dΔ_dr_au = HokseonReproduce.dΔ_dr.(positions_au, adsorbate_m)
+dΔ_dr_au = MemoryElectronicFriction.dΔ_dr.(positions_au, adsorbate_m)
 
 dΔ_dr_evA = ustrip.(auconvert.(u"eV/Å", dΔ_dr_au))
 
@@ -44,6 +44,6 @@ fig
 
 auconvert.(u"eV",AndersonImpurityFrictions.WeightedEHPDOS.A′_matrix(bath, adsorbate_m, positions_au[1]))
 
-auconvert.(u"eV",HokseonReproduce.dΔ_dr.(positions_au[1], adsorbate_m))^ 2
+auconvert.(u"eV",MemoryElectronicFriction.dΔ_dr.(positions_au[1], adsorbate_m))^ 2
 
 width = auconvert.(u"eV",bath.bathstates[end] - bath.bathstates[1])

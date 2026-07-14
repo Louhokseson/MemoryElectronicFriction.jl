@@ -1,10 +1,10 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 using HokseonAssistant, HokseonPlots
@@ -38,7 +38,7 @@ function R_matrix(energy::Real, bath, adsorbate_m::AndersonImpurityModel, positi
     """
 
 
-    coupling_k = HokseonReproduce.Aak(bath, adsorbate_m, position)
+    coupling_k = MemoryElectronicFriction.Aak(bath, adsorbate_m, position)
 
     bathstates = collect(bath.bathstates)
     
@@ -81,7 +81,7 @@ function A′_matrix(bath, adsorbate_m::AndersonImpurityModel, position::Real)
     """
 
     A′_matrix = zeros(Float64, length(bath.bathstates)+1, length(bath.bathstates)+1)
-    coupling_k_vector = HokseonReproduce.A′ak(bath, adsorbate_m, position)
+    coupling_k_vector = MemoryElectronicFriction.A′ak(bath, adsorbate_m, position)
 
 
     A′_matrix[1,2:end] = coupling_k_vector

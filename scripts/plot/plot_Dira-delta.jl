@@ -1,10 +1,10 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded only once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+# making sure that MemoryElectronicFriction module is loaded only once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 # Plotting packages
@@ -27,7 +27,7 @@ function plot_diracdelta(center_au, width_au)
     deltagaussian = DistributionTools.Gaussian(center_au, width_au)
 
 
-    delta_pdf = HokseonReproduce.PDF.(energies_au,deltagaussian)
+    delta_pdf = MemoryElectronicFriction.PDF.(energies_au,deltagaussian)
 
     ## Plotting set up
     fig = Figure(size=(HokseonPlots.RESOLUTION[1]*2, 3*HokseonPlots.RESOLUTION[2]), figure_padding=(1, 2, 1, 1), fonts=(;regular=projectdir("fonts", "MinionPro-Capt.otf")))

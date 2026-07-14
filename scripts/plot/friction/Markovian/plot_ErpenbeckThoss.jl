@@ -1,7 +1,7 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-using HokseonReproduce
+using MemoryElectronicFriction
 
 # Plotting packages
 using CairoMakie

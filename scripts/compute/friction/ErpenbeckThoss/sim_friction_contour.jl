@@ -1,7 +1,7 @@
 ## Only for the main process
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project everywhere
+@quickactivate "MemoryElectronicFriction" ## Activate project everywhere
 import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
 using HDF5
 using HokseonAssistant
@@ -9,7 +9,7 @@ HokseonAssistant.julia_build_procs()
 
 
 # Load packages everywhere
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using NQCModels.QuantumModels
 @everywhere using NQCModels

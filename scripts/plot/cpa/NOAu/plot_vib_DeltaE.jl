@@ -1,6 +1,6 @@
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using Unitful, UnitfulAtomic
 using LinearAlgebra: eigen
@@ -23,7 +23,7 @@ function temperature_palette(Ts)
 end
 
 HokseonAssistant.julia_build_procs()
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 

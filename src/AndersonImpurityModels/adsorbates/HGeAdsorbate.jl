@@ -43,13 +43,13 @@ end
 fermi(e, e0, η) = 1 / (1 + exp((e - e0)/η))
 gappedDOS_smeared(ω, η, E₉) = fermi(ω, -E₉/2, η) + 1 - fermi(ω, E₉/2, η)
 
-function HokseonReproduce.coupling_A(r::Real, adsorbate_m::HGeAdsorbate)
+function MemoryElectronicFriction.coupling_A(r::Real, adsorbate_m::HGeAdsorbate)
     Ã, L, x̃₀, q, scaledown = getfield.(Ref(adsorbate_m), (:Ã, :L, :x̃₀, :q, :scaledown))
     A = Ã .* ((1 .- q) ./2 .* (1 .- tanh((r .- x̃₀) ./ L)) .+ q)
     return A * scaledown
 end
 
-function HokseonReproduce.dA_dr(r::Real, adsorbate_m::HGeAdsorbate)
+function MemoryElectronicFriction.dA_dr(r::Real, adsorbate_m::HGeAdsorbate)
     Ã, L, x̃₀, q, scaledown = getfield.(Ref(adsorbate_m), (:Ã, :L, :x̃₀, :q, :scaledown))
     dA_dr = - (1 .- q) .* Ã ./ (2L) .* sech((r .- x̃₀) ./ L).^2
     return dA_dr * scaledown
@@ -57,7 +57,7 @@ end
 
 
 function 𝓗_energyshift(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-    A_value = HokseonReproduce.coupling_A(r, adsorbate_m)
+    A_value = MemoryElectronicFriction.coupling_A(r, adsorbate_m)
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
     ā = adsorbate_m.ā
@@ -71,15 +71,15 @@ function 𝓗_energyshift(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
 end
 
 
-function HokseonReproduce.adsorbate_h(r::Real,adsorbate_m::HGeAdsorbate)
+function MemoryElectronicFriction.adsorbate_h(r::Real,adsorbate_m::HGeAdsorbate)
     D₁, a′, x₀′, c′, b = getfield.(Ref(adsorbate_m), (:D₁, :a′, :x₀′, :c′, :b))
     h = D₁ ./ (1 .+ exp.(-a′ .* (b .* r .- x₀′))) .+ c′
     return h
 end
 
-function HokseonReproduce.ϵₐ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
+function MemoryElectronicFriction.ϵₐ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
 
-    h = HokseonReproduce.adsorbate_h(r,adsorbate_m)
+    h = MemoryElectronicFriction.adsorbate_h(r,adsorbate_m)
 
     𝓗 = 𝓗_energyshift(r, ω, adsorbate_m)
 
@@ -88,8 +88,8 @@ function HokseonReproduce.ϵₐ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
     return h + 𝓗
 end
 
-function HokseonReproduce.Δ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-    A_value = HokseonReproduce.coupling_A(r, adsorbate_m)
+function MemoryElectronicFriction.Δ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
+    A_value = MemoryElectronicFriction.coupling_A(r, adsorbate_m)
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
     ā = adsorbate_m.ā
@@ -99,8 +99,8 @@ function HokseonReproduce.Δ(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
 end
 
 
-#function HokseonReproduce.DOS(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-#    ϵₐ = HokseonReproduce.ϵₐ(r, ω, adsorbate_m)
+#function MemoryElectronicFriction.DOS(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
+#    ϵₐ = MemoryElectronicFriction.ϵₐ(r, ω, adsorbate_m)
 
 #    Δ = Δ_hybridisation(r, ω, adsorbate_m)
 
@@ -109,7 +109,7 @@ end
 #    return lorentzian
 #end
 
-function HokseonReproduce.dh_dr(r::Real, adsorbate_m::HGeAdsorbate)
+function MemoryElectronicFriction.dh_dr(r::Real, adsorbate_m::HGeAdsorbate)
     D₁, a′, x₀′, c′, b = getfield.(Ref(adsorbate_m), (:D₁, :a′, :x₀′, :c′, :b))
 
     dhdr = D₁ .* a′ .* b .* exp.(-a′ .* (b .* r .- x₀′)) ./ (1 .+ exp.(-a′ .* (b .* r .- x₀′))).^2
@@ -118,7 +118,7 @@ function HokseonReproduce.dh_dr(r::Real, adsorbate_m::HGeAdsorbate)
 end
 
 
-#function HokseonReproduce.dΔ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
+#function MemoryElectronicFriction.dΔ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
 #    A_value = A(r, adsorbate_m)
 #    dA_value_dr = dA_dr(r, adsorbate_m)
 
@@ -131,14 +131,14 @@ end
 #    return 2π * A_value * dA_value_dr * gappedDOS * ā
 #end
 
-function HokseonReproduce.dϵₐ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
-    dhdr = HokseonReproduce.dh_dr(r, adsorbate_m)
+function MemoryElectronicFriction.dϵₐ_dr(r::Real, ω::Real, adsorbate_m::HGeAdsorbate)
+    dhdr = MemoryElectronicFriction.dh_dr(r, adsorbate_m)
 
     E₉ = adsorbate_m.E₉
     η = adsorbate_m.η
     ā = adsorbate_m.ā
 
-    d𝓗dr = 2 * HokseonReproduce.coupling_A(r, adsorbate_m) * HokseonReproduce.dA_dr(r, adsorbate_m) * ā * real(digamma(0.5 + im*(ω - E₉/2)/(2π*η)) - digamma(0.5 + im*(ω + E₉/2)/(2π*η)))
+    d𝓗dr = 2 * MemoryElectronicFriction.coupling_A(r, adsorbate_m) * MemoryElectronicFriction.dA_dr(r, adsorbate_m) * ā * real(digamma(0.5 + im*(ω - E₉/2)/(2π*η)) - digamma(0.5 + im*(ω + E₉/2)/(2π*η)))
     
     return dhdr
     #return dhdr + d𝓗dr

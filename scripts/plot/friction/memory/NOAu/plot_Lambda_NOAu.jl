@@ -1,7 +1,7 @@
 ## Only for the main process
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project everywhere
+@quickactivate "MemoryElectronicFriction" ## Activate project everywhere
 import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
 using HDF5
 using DelimitedFiles
@@ -20,7 +20,7 @@ HokseonAssistant.julia_build_procs()
 
 
 # Load packages everywhere
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using StaticArrays: SA
 
@@ -110,7 +110,7 @@ for (i, params_dict) in enumerate(params_list)
     hlines!(ax_λmax, [γ_λmax]; color=colors[i], linestyle=:dash, linewidth=2)
 
 
-    # --- frequency-dependent friction from FrequencyLambda (HokseonReproduce) — curves ---
+    # --- frequency-dependent friction from FrequencyLambda (MemoryElectronicFriction) — curves ---
     local adsorbate_m, configuration_au, energy_au, temperature_au = buildSystemBath(params_dict)
 
     # Vector{Matrix{Float64}} — one 2×2 friction matrix per ω
@@ -136,9 +136,9 @@ end
 # --- annotate with model info ---
 adsorbate_m, configuration_au, energy_au, temperature_au = buildSystemBath(params_list[1])
 
-h_au  = HokseonReproduce.adsorbate_h(configuration_au, adsorbate_m)
+h_au  = MemoryElectronicFriction.adsorbate_h(configuration_au, adsorbate_m)
 h_eV  = ustrip(h_au * auconvert(u"eV", 1))
-Δ_au  = HokseonReproduce.Δ(configuration_au, adsorbate_m)
+Δ_au  = MemoryElectronicFriction.Δ(configuration_au, adsorbate_m)
 Δ_eV  = ustrip(Δ_au * auconvert(u"eV", 1))
 
 vlines!(ax_rr,   abs(h_eV); linestyle=:dash, color=:black, linewidth=2, label="h(r,z)")

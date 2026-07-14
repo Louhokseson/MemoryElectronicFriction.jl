@@ -1,6 +1,6 @@
 module IO
 
-using ..HokseonReproduce: HokseonReproduce
+using ..MemoryElectronicFriction: MemoryElectronicFriction
 using DrWatson: datadir, savename
 using HDF5: h5open
 using Unitful: Unitful, ustrip

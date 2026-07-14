@@ -1,9 +1,9 @@
-# HokseonReproduce
+# MemoryElectronicFriction
 
-![CI Workflow Status](https://github.com/Louhokseson/HokseonReproduce/actions/workflows/CI.yml/badge.svg)
+![CI Workflow Status](https://github.com/Louhokseson/MemoryElectronicFriction/actions/workflows/CI.yml/badge.svg)
 
 This repo Requires Julia version `>=1.11`. You can find the latest stable version from [here](https://julialang.org/downloads/).
-> HokseonReproduce
+> MemoryElectronicFriction
 
 It is authored by Hokseon.
 
@@ -25,7 +25,7 @@ everything should work out of the box, including correctly finding local paths.
 You may notice that most scripts start with the commands:
 ```julia
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 ```
 which auto-activate the project and enable local path handling from DrWatson.
 

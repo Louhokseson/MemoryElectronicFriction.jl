@@ -24,7 +24,7 @@
 # =============================================================================
 
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 using CairoMakie
 using Printf
 CairoMakie.activate!()

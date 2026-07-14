@@ -21,7 +21,7 @@
 # =============================================================================
 
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 using CairoMakie
 using Printf
 using Random

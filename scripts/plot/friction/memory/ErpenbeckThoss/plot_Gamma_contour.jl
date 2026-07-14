@@ -1,11 +1,11 @@
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project
+@quickactivate "MemoryElectronicFriction" ## Activate project
 using HDF5
 using Statistics
 using LaTeXStrings
 using CairoMakie
 using HokseonPlots
-using HokseonReproduce
+using MemoryElectronicFriction
 using Unitful, UnitfulAtomic
 using NQCModels.QuantumModels
 

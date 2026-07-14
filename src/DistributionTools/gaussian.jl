@@ -12,7 +12,7 @@ Base.@kwdef struct Gaussian <: Distribution
     σ::AbstractFloat = austrip(u"eV", 1)
 end
 
-function HokseonReproduce.PDF(ϵ::Real, d::Gaussian)
+function MemoryElectronicFriction.PDF(ϵ::Real, d::Gaussian)
     """
     Gaussian probability density function
 

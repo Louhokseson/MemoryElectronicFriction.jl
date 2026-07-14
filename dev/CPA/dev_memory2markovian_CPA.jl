@@ -26,7 +26,7 @@
 
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using NQCModels
 using NQCDynamics
@@ -39,7 +39,7 @@ using HDF5
 using HokseonAssistant
 HokseonAssistant.julia_build_procs()
 
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 

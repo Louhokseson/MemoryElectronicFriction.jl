@@ -1,7 +1,7 @@
 ## Only for the main process
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project everywhere
+@quickactivate "MemoryElectronicFriction" ## Activate project everywhere
 import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
 using HDF5
 using DelimitedFiles
@@ -21,7 +21,7 @@ HokseonAssistant.julia_build_procs()
 
 
 # Load packages everywhere
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using StaticArrays: SA
 
@@ -73,10 +73,10 @@ function threshold_energy(params_dict::Dict{String, Any})
     adsorbate_m      = NOAuAdsorbate()
     temperature_au = austrip(temperature * u"K")
 
-    ∇h  = vmin' * HokseonReproduce.dh_dx(r, z, adsorbate_m)   # SVector{2} → scalar
-    ∇Δ  = vmin' * HokseonReproduce.dΔ_dx(r, z, adsorbate_m)   # SVector{2} → scalar
-    Δ   = HokseonReproduce.Δ(z, adsorbate_m)   # scalar
-    h   = HokseonReproduce.adsorbate_h(r, z, adsorbate_m)   # scalar
+    ∇h  = vmin' * MemoryElectronicFriction.dh_dx(r, z, adsorbate_m)   # SVector{2} → scalar
+    ∇Δ  = vmin' * MemoryElectronicFriction.dΔ_dx(r, z, adsorbate_m)   # SVector{2} → scalar
+    Δ   = MemoryElectronicFriction.Δ(z, adsorbate_m)   # scalar
+    h   = MemoryElectronicFriction.adsorbate_h(r, z, adsorbate_m)   # scalar
 
     threshold_energy = sqrt(sqrt(6)*abs(∇h / ∇Δ * Δ - h)^2 + (2π^2 * temperature_au^2))
 
@@ -305,7 +305,7 @@ else
     for (i, r) in enumerate(r_contour), (j, z) in enumerate(z_contour)
         r_au = austrip(r * u"Å")
         z_au = austrip(z * u"Å")
-        h_au = HokseonReproduce.adsorbate_h(r_au, z_au, adsorbate_m)
+        h_au = MemoryElectronicFriction.adsorbate_h(r_au, z_au, adsorbate_m)
         _h_data[i, j] = h_au * HA_TO_EV   # au → eV
     end
     serialize(H_DATA_CACHE, _h_data)

@@ -1,5 +1,5 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using HDF5
 using CairoMakie

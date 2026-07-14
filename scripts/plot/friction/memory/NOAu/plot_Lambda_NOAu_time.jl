@@ -1,7 +1,7 @@
 ## Only for the main process
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce" ## Activate project everywhere
+@quickactivate "MemoryElectronicFriction" ## Activate project everywhere
 import Pkg; Pkg.precompile() ## Precompile packages in master to speed up workers' precompilation
 using HDF5
 using DelimitedFiles
@@ -20,7 +20,7 @@ HokseonAssistant.julia_build_procs()
 
 
 # Load packages everywhere
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using Unitful, UnitfulAtomic
 @everywhere using StaticArrays: SA
 
@@ -172,9 +172,9 @@ hlines!(ax_∫λmax, [0.0]; color=:black, linewidth=1, linestyle=:dash)
 # --- annotate with model info ---
 adsorbate_m, configuration_au, energy_au, temperature_au = buildSystemBath(params_list[1])
 
-h_au  = HokseonReproduce.adsorbate_h(configuration_au, adsorbate_m)
+h_au  = MemoryElectronicFriction.adsorbate_h(configuration_au, adsorbate_m)
 h_eV  = ustrip(h_au * auconvert(u"eV", 1))
-Δ_au  = HokseonReproduce.Δ(configuration_au, adsorbate_m)
+Δ_au  = MemoryElectronicFriction.Δ(configuration_au, adsorbate_m)
 Δ_eV  = ustrip(Δ_au * auconvert(u"eV", 1))
 
 info_str = "NOAuAdsorbate\nr = $(params_list[1]["r"]) Å  z = $(params_list[1]["z"]) Å\nh = $(round(h_eV, digits=4)) eV\nΔ = $(round(Δ_eV, digits=4)) eV\nK(t) = (2/π) ∫ Λ(ω) cos(ωt) dω\nλₘᵢₙ: eigmin(K)\nλₘₐₓ: eigmax(K)"

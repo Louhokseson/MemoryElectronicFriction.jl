@@ -1,6 +1,6 @@
 using Distributed
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using NQCModels
 using NQCDynamics
@@ -16,7 +16,7 @@ HokseonAssistant.julia_build_procs()
 # `julia_build_procs()` spawns workers; propagate the imports they need so the
 # pmap path inside `delta_energy(...; parallel=true)` can call FrequencyLambda
 # and our helpers on every worker.
-@everywhere using HokseonReproduce
+@everywhere using MemoryElectronicFriction
 @everywhere using StaticArrays: SA
 @everywhere using Unitful, UnitfulAtomic
 

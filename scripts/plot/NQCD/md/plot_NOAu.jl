@@ -1,5 +1,5 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 using CairoMakie
 using Unitful, UnitfulAtomic
@@ -10,9 +10,9 @@ using HokseonAssistant
 colormap = HokseonPlots.NICECOLORS
 HokseonAssistant.julia_build_procs()
 
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction
 end
 
 # -----------------------------------------------------------------------------

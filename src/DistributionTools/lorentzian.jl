@@ -11,7 +11,7 @@ Base.@kwdef struct Lorentzian <: Distribution
     Γ::AbstractFloat = austrip(1.0*u"eV")
 end
 
-function HokseonReproduce.PDF(ω::Real, d::Lorentzian)
+function MemoryElectronicFriction.PDF(ω::Real, d::Lorentzian)
     """
     Lorentzian probability density function
 
