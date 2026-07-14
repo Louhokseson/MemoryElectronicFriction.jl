@@ -6,6 +6,9 @@ on:
       - fix-ci-workflow
     tags: '*'
   pull_request:
+permissions:
+  actions: write   # julia-actions/cache: cleanup of old caches
+  contents: read
 concurrency:
   # Skip intermediate builds: always.
   # Cancel intermediate builds: only if it is a pull request build.
