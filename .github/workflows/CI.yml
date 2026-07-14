@@ -19,14 +19,14 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.11.5' # This will use the latest 1.x version, e.g., 1.10.x or 1.11.x
+          - '1.11' # latest 1.11.x patch — must stay in sync with Manifest.toml's julia_version
         os:
           - ubuntu-latest
         arch:
           - x64
     steps:
       - uses: actions/checkout@v4
-      - uses: julia-actions/setup-julia@v1
+      - uses: julia-actions/setup-julia@v2
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
@@ -41,7 +41,7 @@ jobs:
         run: julia -e 'using Pkg; Pkg.Registry.add(Pkg.RegistrySpec(url="https://github.com/NQCD/NQCRegistry.git"))'
         shell: bash
 
-      - uses: julia-actions/cache@v1
+      - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-buildpkg@v1
 
       - name: Run tests

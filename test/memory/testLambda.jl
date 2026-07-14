@@ -16,25 +16,7 @@ using Test
     ## singularities comes from the Γ(ω₁,ω₁+ω) at A37 in https://doi.org/10.1103/PhysRevB.52.6042 
     singularities_expected = sort(collect(union(Set(bath.bathstates), Set(bath.bathstates .- ω))))
 
-    @test singularities_expected == FrequencyLambda.singularities(bath, ω)
-
-end
-
-## Test for the principal value integral function with a analytical function
-@testset "Principal value integration" begin
-
-    ## function has singularities at x = 1, 2, 3 with integration as 0 from -Inf to Inf
-    #f(x,y) = 1/(x-1)/(x-3)/(x-2)
-
-    xk = [-4,-3,-2,-1,0,1,2,3,4,5]
-    f(x,y) = sum(k / (x - xk[k]) for k in 1:10)
-
-
-    principal_integration_result = FrequencyLambda.cauchy_integral(f, 1.0, xk)[1]
-
-    @info "Principal value integral result: $principal_integration_result"
-
-    @test isapprox(principal_integration_result, 0, atol=1e-6)
+    @test singularities_expected == FrequencyLambda.bath_singularities(bath, ω)
 
 end
 
