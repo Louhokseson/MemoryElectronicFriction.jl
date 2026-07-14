@@ -1,7 +1,7 @@
 module Tools
     
 # Importing the parent module
-using ..HokseonReproduce: HokseonReproduce 
+using ..MemoryElectronicFriction: MemoryElectronicFriction 
 
 # Importing the external packages
 using DrWatson

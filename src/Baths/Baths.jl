@@ -1,7 +1,7 @@
 module Baths
 
 using Reexport: @reexport
-using ..HokseonReproduce: HokseonReproduce, HokseonReproduce.Bath
+using ..MemoryElectronicFriction: MemoryElectronicFriction, MemoryElectronicFriction.Bath
     
 
 include("wideband/widebandbath.jl")

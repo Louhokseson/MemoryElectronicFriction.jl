@@ -1,0 +1,137 @@
+using Distributed
+using DrWatson
+@quickactivate "MemoryElectronicFriction"
+
+using NQCModels
+using NQCDynamics
+using NQCDynamics.InitialConditions: QuantisedDiatomic
+using NQCCalculators
+using LinearAlgebra: eigen
+using Random
+using Unitful, UnitfulAtomic
+using HDF5
+using HokseonAssistant
+HokseonAssistant.julia_build_procs()
+
+# Markovian friction is evaluated on master (sim.cache is mutated in place),
+# so we only need the worker-side imports the memory `delta_energy` would
+# otherwise require — keeping the @everywhere lines lets this script also be
+# used to compare against the memory variant in the same session.
+@everywhere using MemoryElectronicFriction
+@everywhere using StaticArrays: SA
+@everywhere using Unitful, UnitfulAtomic
+
+# ---------------------------------------------------------------------------
+# Energy-loss engine. Defines two `delta_energy` methods (memory and
+# Markovian); multiple dispatch picks one based on whether we hand it an
+# AndersonImpurityModel adsorbate or an NQCD AbstractSimulation.
+# ---------------------------------------------------------------------------
+include("DeltaE.jl")
+
+# ---------------------------------------------------------------------------
+# MD parameters — must match run_md.jl exactly so dict_to_data_savename
+# resolves to the same .h5 path the sweep wrote.
+# ---------------------------------------------------------------------------
+
+all_params_et = Dict{String, Any}(
+    "mass"                  => [10.54u"u"],
+    "Γ"                     => [0.02, 0.1, 0.25, 0.5, 1.0] .* u"eV",
+    "r0"                    => [[5.0u"Å"]],              # 1 DOF: surface distance
+    "translational_kinetic" => [0.5,1.0,2.0,3.0] .* u"eV",
+    "state"                 => [1],
+    "tmax"                  => [200.0u"fs"],
+    "dt"                    => [0.01u"fs"],
+    "termination_min_time"  => [10.0u"fs"],
+    "termination_coord_idx" => [1],                       # check r
+    "termination_threshold" => [5.0u"Å"],                 # dissociation threshold
+)
+params_list_et = dict_list(all_params_et)
+
+all_params_NOAu = Dict{String, Any}(
+    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],
+    "r0"                    => [[1.15u"Å", 5.0u"Å"]],
+    "translational_kinetic" => [1.0u"eV"],
+    "state"                 => [1],
+    "tmax"                  => [500.0u"fs"],
+    "dt"                    => [0.25u"fs"],
+    "termination_min_time"  => [10.0u"fs"],
+    "termination_coord_idx" => [2],
+    "termination_threshold" => [5.0u"Å"],
+    "vibrational_state"     => [nothing],
+    "trajectories"          => [1],
+)
+params_list_NOAu = dict_list(all_params_NOAu)
+
+# ---------------------------------------------------------------------------
+# Load trajectories — same loader as the memory CPA driver.
+# ---------------------------------------------------------------------------
+
+et_trajs   = [load_md_trajectories(p, "ErpenbeckThoss") for p in params_list_et]
+noau_trajs = [load_md_trajectories(p, "NOAu")           for p in params_list_NOAu]
+
+# ---------------------------------------------------------------------------
+# Markovian-CPA configuration — no ω-grid, no kernel_average. The bath
+# discretisation knobs (M, bw_eV) only feed the WideBandBath plumbing for
+# `Simulation{DiabaticMDEF}`; the wide-band-exact friction is independent of
+# them, so the defaults inside build_friction_sim are fine.
+# ---------------------------------------------------------------------------
+
+const CPA_config_et = Dict{String, Any}(
+    "model"   => :ErpenbeckThoss,
+    "T_K"     => 1000,
+    "stride"  => 1,
+    "parallel" => false,
+)
+
+const CPA_config_noau = Dict{String, Any}(
+    "model"   => :NOAu,
+    "T_K"     => 300,
+    "stride"  => 1,
+    "parallel" => false,
+)
+
+# ---------------------------------------------------------------------------
+# Run Markovian ΔE for one (CPA_config, params_list, trajs_list) triplet.
+# ---------------------------------------------------------------------------
+
+function run_Markovian_CPA_delta_energy(CPA_config, params_list, trajs_list)
+    @unpack model, T_K, stride, parallel = CPA_config
+    T_au = austrip(T_K * u"K")
+
+    for (p, trajs) in zip(params_list, trajs_list)
+        savingpath, savingname = CPA_dict_to_data_savename(p, CPA_config)
+        full_data_path = datadir(savingpath, savingname)
+
+        if isfile(full_data_path)
+            @info "Skipping (already saved)" full_data_path
+            continue
+        end
+
+        sim   = build_friction_sim(Val(model), p; T_au = T_au)
+        Δt_au = austrip(p["dt"])
+        ΔE_au_per_traj = Vector{Vector{Float64}}(undef, length(trajs))
+        for (i, traj) in enumerate(trajs)
+            ΔE_au_per_traj[i] = delta_energy(model, sim, traj, Δt_au;
+                                        stride = stride, parallel = parallel)
+            @info "Markovian ΔE done" model=model config=i stride T_K=CPA_config["T_K"] ΔE_eV=ustrip.(ΔE_au_per_traj[i] .* auconvert(u"eV", 1))
+        end
+        ΔE_au_mat = reduce(hcat, ΔE_au_per_traj)   # D × n_traj
+
+        h5open(full_data_path, "w") do fid
+            fid["DeltaE_au"] = ΔE_au_mat
+        end
+        @info "Saved Markovian ΔE" full_data_path size=size(ΔE_au_mat)
+    end
+end
+
+# ---------------------------------------------------------------------------
+# Run sweeps. NOTE on savename: `CPA_dict_to_data_savename` keys off the
+# fields present in `CPA_config`. Memory CPA includes `kernel_average`,
+# Markovian CPA does not — so the two variants land at different .h5 paths
+# even though both live under sims/cpa/<model>/.  If you'd prefer an
+# explicit tag (e.g. `"variant" => "markovian"`), say the word and I'll
+# extend `_CPA_CFG_KEYS`.
+# ---------------------------------------------------------------------------
+
+run_Markovian_CPA_delta_energy(CPA_config_et,   params_list_et,   et_trajs)
+#run_Markovian_CPA_delta_energy(CPA_config_noau, params_list_NOAu, noau_trajs)

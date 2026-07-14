@@ -1,5 +1,5 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
 include("dev_Gamma.jl")
 

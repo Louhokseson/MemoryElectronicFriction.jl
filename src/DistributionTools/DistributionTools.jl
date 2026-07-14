@@ -1,6 +1,6 @@
 module DistributionTools
 
-using ..HokseonReproduce: HokseonReproduce, HokseonReproduce.Distribution
+using ..MemoryElectronicFriction: MemoryElectronicFriction, MemoryElectronicFriction.Distribution
 using Requires: Requires
 using Parameters: Parameters
 

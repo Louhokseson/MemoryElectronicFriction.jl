@@ -10,12 +10,12 @@
 
 
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-# making sure that HokseonReproduce module is loaded once
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce: TrapezoidalRule, ShenviGaussLegendre, BrandbygeModels, DistributionTools
+# making sure that MemoryElectronicFriction module is loaded once
+if !isdefined(Main, :MemoryElectronicFriction)
+    include(srcdir("MemoryElectronicFriction.jl"))
+    using .MemoryElectronicFriction: TrapezoidalRule, ShenviGaussLegendre, BrandbygeModels, DistributionTools
 end
 
 
@@ -59,7 +59,7 @@ function build_BrandbygeAdsorbate!(distance)
 
     am = BrandbygeModels.BrandbygeAdsorbate()
 
-    lorentzian = HokseonReproduce.DOS(distance, am)
+    lorentzian = MemoryElectronicFriction.DOS(distance, am)
 
     Δ = lorentzian.Γ
 
@@ -96,7 +96,7 @@ function Raa(ω::Float64, distance::Float64)
 
     build_BrandbygeAdsorbate!(distance)
 
-    return 2 * π * HokseonReproduce.PDF(ω, lorentzian)
+    return 2 * π * MemoryElectronicFriction.PDF(ω, lorentzian)
 end 
 
 
@@ -134,7 +134,7 @@ function Rak(ω::Float64,k::Int64, distance::Float64)
 
     first = Raa(ω, distance) * (1/(ω - states[k]))
 
-    second = π * Raa(ω, distance) * HokseonReproduce.PDF(ω, DeltaGaussian) * (ω-eminiusH)/Δ
+    second = π * Raa(ω, distance) * MemoryElectronicFriction.PDF(ω, DeltaGaussian) * (ω-eminiusH)/Δ
     
     Tk = sqrt(Δ/(2*π*ρbath))
 
