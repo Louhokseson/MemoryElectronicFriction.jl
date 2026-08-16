@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="assets/logo.svg" width="300" alt="MemoryElectronicFriction.jl logo — an adsorbate coupled to a metal surface by strings of different frequencies"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.gif"/>
+    <img src="assets/logo-light.gif" width="300" alt="MemoryElectronicFriction.jl logo — an adsorbate coupled to a metal surface by strings of different frequencies"/>
+  </picture>
 </p>
 
 <h1 align="center">MemoryElectronicFriction.jl</h1>
@@ -14,7 +17,7 @@
 </p>
 
 <div align="center">
-  <h3>Frequency-Dependent Electronic Friction from Anderson Impurity Models</h3>
+  <h3>Memory-Dependent Electronic Friction from Anderson Impurity Models</h3>
 </div>
 
 ---
@@ -23,10 +26,25 @@
 <strong>MemoryElectronicFriction.jl</strong> computes the frequency-dependent (memory) electronic friction kernel 
 $\mathcal{K}(\omega;x)$ experienced by nonadiabatic molecular adsorbates on metal surfaces, from Anderson impurity 
 and Newns–Anderson models. The package implements non-Markovian friction based on the theory of 
-<a href="https://scholar.google.com/citations?user=233SExsAAAAJ&hl=en">Lu <em>et al.</em> (2026)</a>, 
+<a href="https://doi.org/10.48550/arXiv.2608.12572">Lu <em>et al.</em> (2026)</a>, 
 together with its Markovian ($\omega \to 0$) limit, and provides the surrounding infrastructure 
 — adsorbate models, discretised electronic baths, and molecular-dynamics workflows — 
 needed to study vibrationally inelastic molecule–surface scattering.
+$$
+M\ddot{\mathbf{x}}
+=
+-\nabla_{\mathbf{x}} E_0
+-\int_0^t \mathrm{d}t'\,
+\mathcal{K}\!\left(t-t';\,\mathbf{x}(t),\mathbf{x}(t')\right)
+\dot{\mathbf{x}}(t')
++\boldsymbol{\xi}^{\mathrm{c}}(t),
+$$
+
+A molecule on a metal loses energy to electron–hole pairs, which drag on the nuclei and kick back at them. This **generalised Langevin equation** keeps only the nuclei $\mathbf{x}$ and folds the electrons into a friction integral and a noise $\boldsymbol{\xi}^{\mathrm{c}}$, tied together by fluctuation–dissipation.
+
+The memory kernel $\mathcal{K}$ makes it a **non-Markovian** SDE: the drag felt now is a convolution over the entire history of velocities, so the nuclei are no longer their own complete state. If instead the nuclei are slow compared with the electronic response, the kernel collapses to $\mathcal{K}(t-t') \to \Lambda(\mathbf{x})\,\delta(t-t')$ — the integral becomes an instantaneous drag $-\Lambda(\mathbf{x})\dot{\mathbf{x}}$, the noise turns white, and one recovers the **Markovian** SDE of standard electronic friction.
+
+ This package computes $\mathcal{K}(\omega;\mathbf{x})$ so each mode feels the friction appropriate to its own frequency, with $\omega \to 0$ recovering the Markovian limit.
 </p>
 
 ## Features
