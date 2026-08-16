@@ -30,12 +30,11 @@ and Newns–Anderson models. The package implements non-Markovian friction based
 together with its Markovian ($\omega \to 0$) limit, and provides the surrounding infrastructure 
 — adsorbate models, discretised electronic baths, and molecular-dynamics workflows — 
 needed to study vibrationally inelastic molecule–surface scattering.
+
 $$
-M\ddot{\mathbf{x}}
-=
+M\ddot{\mathbf{x}}=
 -\nabla_{\mathbf{x}} E_0
--\int_0^t \mathrm{d}t'\,
-\mathcal{K}\!\left(t-t';\,\mathbf{x}(t),\mathbf{x}(t')\right)
+-\int_0^t \mathrm{d}t'\mathcal{K}\left(t-t';\mathbf{x}(t),\mathbf{x}(t')\right)
 \dot{\mathbf{x}}(t')
 +\boldsymbol{\xi}^{\mathrm{c}}(t),
 $$
