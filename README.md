@@ -204,19 +204,22 @@ Reproduce the animation with [`animate_ebk_sampling.jl`](dev/CPA/animate_ebk_sam
 
 This package implements the theory of:
 
-> X. Lu *et al.*, "[Memory-dependent electronic friction for nonadiabatic dynamics at metal surfaces](https://doi.org/10.48550/arXiv.2608.12572)," arXiv:2608.12572 (2026).
+> X. Lu, C. L. Box, N. Hertl, and R. J. Maurer, "[Memory-dependent electronic friction for nonadiabatic dynamics at metal surfaces](https://doi.org/10.48550/arXiv.2608.12572)", arXiv:2608.12572 [cond-mat.mtrl-sci] (2026).
 
 If you use `MemoryElectronicFriction.jl` in published work, please cite that paper
 alongside this repository:
 
 ```bibtex
 @article{Lu2026MemoryElectronicFriction,
-  author        = {Lu, Xuexun and others},
+  author        = {Lu, Xuexun and Box, Connor L. and Hertl, Nils and Maurer, Reinhard J.},
   title         = {Memory-dependent electronic friction for nonadiabatic dynamics at metal surfaces},
   year          = {2026},
+  month         = aug,
   eprint        = {2608.12572},
   archivePrefix = {arXiv},
-  doi           = {10.48550/arXiv.2608.12572}
+  primaryClass  = {cond-mat.mtrl-sci},
+  doi           = {10.48550/arXiv.2608.12572},
+  url           = {https://arxiv.org/abs/2608.12572}
 }
 
 @software{MemoryElectronicFriction_jl,
