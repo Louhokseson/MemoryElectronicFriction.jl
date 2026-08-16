@@ -14,6 +14,9 @@
   <img src="https://img.shields.io/badge/julia-%E2%89%A5%201.11-9558B2?logo=julia" alt="Julia ≥ 1.11"/>
   <img src="https://img.shields.io/badge/lifecycle-research-389826" alt="Research code"/>
   <img src="https://img.shields.io/badge/license-MIT-006b3c" alt="License: MIT"/>
+  <a href="https://doi.org/10.48550/arXiv.2608.12572">
+    <img src="https://img.shields.io/badge/arXiv-2608.12572-b31b1b?logo=arxiv&logoColor=white" alt="arXiv:2608.12572"/>
+  </a>
 </p>
 
 <div align="center">
@@ -25,11 +28,12 @@
 <p align="justify">
 <strong>MemoryElectronicFriction.jl</strong> computes the frequency-dependent (memory) electronic friction kernel 
 $\mathcal{K}(\omega;x)$ experienced by nonadiabatic molecular adsorbates on metal surfaces, from Anderson impurity 
-and Newns–Anderson models. The package implements non-Markovian friction based on the theory of 
+and Newns–Anderson models. The package implements memory-dependent (non-Markovian) friction following the theory of 
 <a href="https://doi.org/10.48550/arXiv.2608.12572">Lu <em>et al.</em> (2026)</a>, 
 together with its Markovian ($\omega \to 0$) limit, and provides the surrounding infrastructure 
 — adsorbate models, discretised electronic baths, and molecular-dynamics workflows — 
 needed to study vibrationally inelastic molecule–surface scattering.
+</p>
 
 $$
 M\ddot{\mathbf{x}}=
@@ -39,11 +43,24 @@ M\ddot{\mathbf{x}}=
 +\boldsymbol{\xi}^{\mathrm{c}}(t),
 $$
 
-A molecule on a metal loses energy to electron–hole pairs, which drag on the nuclei and kick back at them. This **generalised Langevin equation** keeps only the nuclei $\mathbf{x}$ and folds the electrons into a friction integral and a noise $\boldsymbol{\xi}^{\mathrm{c}}$, tied together by fluctuation–dissipation.
+<p align="justify">
+A molecule on a metal loses energy to electron–hole pairs, which drag on the nuclei and kick back at them. 
+This <strong>generalised Langevin equation</strong> keeps only the nuclei $\mathbf{x}$ and folds the electrons 
+into a friction integral and a noise $\boldsymbol{\xi}^{\mathrm{c}}$, tied together by fluctuation–dissipation.
+</p>
 
-The memory kernel $\mathcal{K}$ makes it a **non-Markovian** SDE: the drag felt now is a convolution over the entire history of velocities, so the nuclei are no longer their own complete state. If instead the nuclei are slow compared with the electronic response, the kernel collapses to $\mathcal{K}(t-t') \to \Lambda(\mathbf{x})\,\delta(t-t')$ — the integral becomes an instantaneous drag $-\Lambda(\mathbf{x})\dot{\mathbf{x}}$, the noise turns white, and one recovers the **Markovian** SDE of standard electronic friction.
+<p align="justify">
+The memory kernel $\mathcal{K}$ makes it a <strong>non-Markovian</strong> SDE: the drag felt now is a convolution 
+over the entire history of velocities, so the nuclei are no longer their own complete state. If instead the nuclei 
+are slow compared with the electronic response, the kernel collapses to 
+$\mathcal{K}(t-t') \to \Lambda(\mathbf{x})\,\delta(t-t')$ — the integral becomes an instantaneous drag 
+$-\Lambda(\mathbf{x})\dot{\mathbf{x}}$, the noise turns white, and one recovers the <strong>Markovian</strong> SDE 
+of standard electronic friction.
+</p>
 
- This package computes $\mathcal{K}(\omega;\mathbf{x})$ so each mode feels the friction appropriate to its own frequency, with $\omega \to 0$ recovering the Markovian limit.
+<p align="justify">
+This package computes $\mathcal{K}(\omega;\mathbf{x})$ so each mode feels the friction appropriate to its own 
+frequency, with $\omega \to 0$ recovering the Markovian limit.
 </p>
 
 ## Features
@@ -182,6 +199,33 @@ phase-space sampled. The animation walks through the logic for `ν = 16`:
 The final vibrational state of the scattered trajectories is read off the same
 binding curve — see [`run_vib_state_noau.jl`](scripts/compute/cpa/NOAu/run_vib_state_noau.jl).
 Reproduce the animation with [`animate_ebk_sampling.jl`](dev/CPA/animate_ebk_sampling.jl).
+
+## Citation
+
+This package implements the theory of:
+
+> X. Lu *et al.*, "[Memory-dependent electronic friction for nonadiabatic dynamics at metal surfaces](https://doi.org/10.48550/arXiv.2608.12572)," arXiv:2608.12572 (2026).
+
+If you use `MemoryElectronicFriction.jl` in published work, please cite that paper
+alongside this repository:
+
+```bibtex
+@article{Lu2026MemoryElectronicFriction,
+  author        = {Lu, Xuexun and others},
+  title         = {Memory-dependent electronic friction for nonadiabatic dynamics at metal surfaces},
+  year          = {2026},
+  eprint        = {2608.12572},
+  archivePrefix = {arXiv},
+  doi           = {10.48550/arXiv.2608.12572}
+}
+
+@software{MemoryElectronicFriction_jl,
+  author = {Lu, Xuexun},
+  title  = {{MemoryElectronicFriction.jl}: Memory-dependent electronic friction from Anderson impurity models},
+  year   = {2026},
+  url    = {https://github.com/Louhokseson/MemoryElectronicFriction.jl}
+}
+```
 
 ## License
 
