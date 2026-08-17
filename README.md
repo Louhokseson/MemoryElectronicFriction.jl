@@ -70,10 +70,8 @@ frequency, with $\omega \to 0$ recovering the Markovian limit.
 | **Component** | **Description** |
 |---------------|-----------------|
 | **Adsorbate models** (`AndersonImpurityModels`) | Type hierarchy (1-DOF / N-DOF × wide-band / frequency-dependent hybridisation) with five ready-made models: `BrandbygeAdsorbate`, `ErpenbeckThossAdsorbate`, `HGeAdsorbate`, the 2-D `NOAuAdsorbate`, and the NQCModels-compatible [`POGOModel`](src/AndersonImpurityModels/adsorbates/POGOModel.jl) |
-| **Memory friction** (`AndersonImpurityFrictions.FrequencyLambda`) | $\mathcal{K}(\omega;x)$ via singularity-aware quadrature over discretised baths; analytic wide-band 1-DOF route; 2×2 friction tensors (`LambdaAveraged`) for two-coordinate models |
+| **Memory friction** (`AndersonImpurityFrictions.FrequencyLambda`) | $\mathcal{K}(\omega;x)$ via multithreaded computing; analytic wide-band 1-DOF route; 2×2 friction tensors (`LambdaAveraged`) for two-coordinate models |
 | **Markovian limit** (`AndersonImpurityFrictions.MarkovianLambda`) | `widebandfriction` for the instantaneous-friction baseline ($\omega \to 0$) |
-| **Electron–hole-pair building blocks** | Weighted e–h pair densities of states (`WeightedEHPDOS`: `Gamma`, `R_matrix`, `V′_matrix`) and imaginary Green's functions (`ImaginaryGreens`: `Raa`, `Rak`, `Rkk′`) |
-| **Baths & distributions** | Wide-band discretisations (`TrapezoidalRule`, `ShenviGaussLegendre`) and `Lorentzian` / `FermiDirac` / `Gaussian` distribution tools with NaN-safe derivatives |
 | **I/O helpers** | HDF5 + [DrWatson](https://juliadynamics.github.io/DrWatson.jl/stable/) conventions for simulation data (`dict_to_data_savename`, …) |
 
 *A complete feature inventory with file references lives in [`FEATURES.md`](FEATURES.md).*
