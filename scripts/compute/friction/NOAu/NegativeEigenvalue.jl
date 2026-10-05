@@ -13,12 +13,30 @@
 @everywhere using LinearAlgebra: Symmetric, eigen
 @everywhere using Unitful, UnitfulAtomic
 @everywhere import Optim
+@everywhere using QuadGK: quadgk
 
 @everywhere begin
-    # 2×2 Λ(ω; q, T) as a static symmetric matrix: analytic, allocation-free
+    # 2×2 Λ(ω; q, T), same integrand as FrequencyLambda.Lambda (Lambdaₖₗₗₖ) but
+    # with the energy integral split at its features: the two Fermi steps
+    # (ε = μ − ω, μ) and the two resonances (ε = h − ω, h). The library
+    # integrates (−∞, ∞) in one piece, and at 300 K that can miss part of the
+    # Fermi window at isolated ω with a tiny error estimate (seen: Λ_rr 1.6 %
+    # low at (r, z) = (1.624, 2.09) Å, ħω = 1.25 eV, error estimate 1e-7).
+    # λ_min is ~1e-3 of the elements, so one such miss is a false minimum.
+    # Returned as a static symmetric matrix: analytic, allocation-free
     # eigen-decomposition, safe to call from many threads.
-    friction_tensor(ω, ads, q, T) =
-        Symmetric(SMatrix{2,2}(FrequencyLambda.Lambda(ω, ads, q, T)))
+    function friction_tensor(ω, ads, q, T; fermi_level = 0.0)
+        fd  = MemoryElectronicFriction.DistributionTools.FermiDirac(fermi_level, T)
+        h   = MemoryElectronicFriction.adsorbate_h(q, ads)
+        Δ   = MemoryElectronicFriction.Δ(q, ads)
+        dh  = MemoryElectronicFriction.dh_dx(q, ads)
+        dΔ  = MemoryElectronicFriction.dΔ_dx(q, ads)
+        pts = sort!(unique!([fermi_level - ω, fermi_level, h - ω, h]))
+        element(k, l) = quadgk(ε -> FrequencyLambda.Lambdaₖₗₗₖ(ε, ω, h, Δ, dh[k], dh[l], dΔ[k], dΔ[l], fd),
+                               -Inf, pts..., Inf; rtol = 1e-6)[1] / -2
+        Λ_rr, Λ_zz, Λ_rz = element(1, 1), element(2, 2), element(1, 2)
+        return Symmetric(SMatrix{2,2}(Λ_rr, Λ_rz, Λ_rz, Λ_zz))
+    end
 
     eigmin_friction(ω, ads, q, T) = first(eigen(friction_tensor(ω, ads, q, T)).values)
 

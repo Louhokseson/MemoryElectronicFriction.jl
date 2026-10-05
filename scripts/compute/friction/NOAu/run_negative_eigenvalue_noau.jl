@@ -31,7 +31,7 @@
 #                          with SLURM_CPUS_PER_TASK threads each
 #   quick test             ... --vib 16 --translational_kinetic 1.0 --ntraj 4 --stride 20
 #
-# CLI: --vib <int> --translational_kinetic <float> --temperature <int>
+# CLI: --vib <int>[,<int>...] --translational_kinetic <float> --temperature <int>
 #      --stride <int> --ntraj <int> --domega <float, eV> --omega_max <float, eV>
 # With no arguments, sweeps every (vibrational_state, translational_kinetic)
 # MD file with 1000 trajectories.
@@ -72,7 +72,7 @@ let i = 1, _vib = nothing, _temp = nothing, _tk = nothing,
     _stride = nothing, _ntraj = nothing, _domega = nothing, _omega_max = nothing
     while i <= length(ARGS)
         if ARGS[i] == "--vib" && i < length(ARGS)
-            _vib    = parse(Int, ARGS[i+1]); i += 2
+            _vib    = parse.(Int, split(ARGS[i+1], ',')); i += 2   # e.g. 16 or 0,3
         elseif ARGS[i] == "--temperature" && i < length(ARGS)
             _temp   = parse(Int, ARGS[i+1]); i += 2
         elseif ARGS[i] == "--translational_kinetic" && i < length(ARGS)
@@ -115,7 +115,7 @@ all_params_NOAu = Dict{String, Any}(
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],
     "termination_threshold" => [5.0u"Å"],
-    "vibrational_state"     => CLI_VIB === nothing ? [0, 3, 16] : [CLI_VIB],
+    "vibrational_state"     => CLI_VIB === nothing ? [0, 3, 16] : CLI_VIB,
     "trajectories"          => [1000],
 )
 params_list_NOAu = dict_list(all_params_NOAu)
@@ -234,10 +234,12 @@ function run_negative_eigenvalue(cfg, params_list)
         @info "Negative-tail eigenvalue" md_file=basename(md_path) T_K vib=p["vibrational_state"] Ek=p["translational_kinetic"] n_todo=length(todo) n_done=length(done) n_conf n_omega_coarse=length(ω_coarse) nworkers=nworkers()
 
         # Chunks of trajectories: each chunk is pmap'ed, then written to the
-        # partial file, so a killed job loses at most one chunk.
+        # partial file, so a killed job loses at most one chunk (≈ 2 min).
+        # 16 trajectories per worker keeps the end-of-chunk wait for the
+        # longest trajectory (≤ 2001 steps) to a few % of the chunk time.
         t0 = time()
         n_finished = 0
-        for batch in Iterators.partition(todo, 4 * nworkers())
+        for batch in Iterators.partition(todo, 16 * nworkers())
             # Only (t, Q) travel to the workers, not the whole trajectory list.
             inputs  = [(trajs[i].t[1:stride:end], trajs[i].OutputPosition[:, 1:stride:end]) for i in batch]
             results = pmap(x -> negative_tail_along_trajectory(x..., ads, T_au, ω_coarse, ω_tol), inputs)
