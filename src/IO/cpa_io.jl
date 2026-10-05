@@ -9,7 +9,11 @@
 
 const _CPA_MD_KEYS = ("mass", "Γ", "r0", "translational_kinetic", "state",
                       "dt", "vibrational_state", "trajectories")
-const _CPA_CFG_KEYS = ("model", "T_K", "stride", "kernel_average")
+# omega_max_eV, domega_eV and ntraj only appear in the negative-tail bound
+# configs (scripts/compute/cpa/NOAu/run_negative_bound_CPA_noau.jl), so the
+# memory / Markovian filenames are unchanged.
+const _CPA_CFG_KEYS = ("model", "T_K", "stride", "kernel_average",
+                       "omega_max_eV", "domega_eV", "ntraj")
 
 function CPA_dict_to_data_savename(p::Dict{String,Any}, cfg::Dict{String,Any})
     md_part  = Dict{String,Any}(k => get(p, k, nothing) for k in _CPA_MD_KEYS if haskey(p, k))
