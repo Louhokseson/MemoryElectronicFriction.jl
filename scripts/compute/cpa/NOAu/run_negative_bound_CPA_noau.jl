@@ -80,13 +80,13 @@ end
 # ---------------------------------------------------------------------------
 
 all_params_NOAu = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+    "mass"                  => [[14.007 * 15.999 / (14.007 + 15.999), 14.007 + 15.999] .* u"u"],   # [μ_NO, M_NO]: r carries μ, z carries M
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],
     "translational_kinetic" => CLI_TK === nothing ?
                                [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 2.0, 3.0, 4.0, 5.0] .* u"eV" :
                                [CLI_TK * u"eV"],
     "state"                 => [1],
-    "tmax"                  => [500.0u"fs"],
+    "tmax"                  => [1000.0u"fs"],
     "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],

@@ -33,12 +33,12 @@ end
 # -----------------------------------------------------------------------------
 
 all_params_NOAu = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+    "mass"                  => [[14.007 * 15.999 / (14.007 + 15.999), 14.007 + 15.999] .* u"u"],   # [μ_NO, M_NO]: r carries μ, z carries M
 #    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
     "translational_kinetic" => [1.0u"eV"],
     "state"                 => [1],
-    "tmax"                  => [500.0u"fs"],
+    "tmax"                  => [1000.0u"fs"],
     "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],                       # check z
@@ -52,8 +52,9 @@ params_list_NOAu = dict_list(all_params_NOAu)
 
 # -----------------------------------------------------------------------------
 # Plot: surface and translational energy vs time for the NOAu BO run.
-# OutputPosition is a 3D array of shape (ndofs, natoms, ntime) = (1, 1, N);
-# slice [1,1,:] to get the bond-length time series.
+# OutputPosition is a 3D array of shape (ndofs, natoms, ntime): (2, 1, N) for
+# the old single-mass run, (1, 2, N) for diag(μ, M). Reshaping to 2 × N gives
+# row 1 = r, row 2 = z for either layout.
 # -----------------------------------------------------------------------------
 
 function plot_NOAu(params)
@@ -63,9 +64,9 @@ function plot_NOAu(params)
     traj = load_trajectory(full_data_path)
 
     t_fs = ustrip.(auconvert.(u"fs", traj["Time"]))
-    pos  = traj["OutputPosition"]
-    r_A  = ustrip.(auconvert.(u"Å",  pos[1, 1, :]))
-    z_A  = ustrip.(auconvert.(u"Å",  pos[2, 1, :]))
+    pos  = reshape(traj["OutputPosition"], 2, :)
+    r_A  = ustrip.(auconvert.(u"Å",  pos[1, :]))
+    z_A  = ustrip.(auconvert.(u"Å",  pos[2, :]))
     E_eV = ustrip.(auconvert.(u"eV", traj["OutputKineticEnergy"]))
 
     # 1. Adjust figure size for a single, taller panel

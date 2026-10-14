@@ -157,11 +157,11 @@ end
 # ---------------------------------------------------------------------------
 function build_params_list_noau(E_TRANS_eV, ν_LIST)
     all_params = Dict{String, Any}(
-        "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO
+        "mass"                  => [[14.007 * 15.999 / (14.007 + 15.999), 14.007 + 15.999] .* u"u"],   # [μ_NO, M_NO]: r carries μ, z carries M
         "r0"                    => [[1.15u"Å", 5.0u"Å"]],
         "translational_kinetic" => [E_TRANS_eV * u"eV"],
         "state"                 => [1],
-        "tmax"                  => [500.0u"fs"],
+        "tmax"                  => [1000.0u"fs"],
         "dt"                    => [0.25u"fs"],
         "termination_min_time"  => [10.0u"fs"],
         "termination_coord_idx" => [2],

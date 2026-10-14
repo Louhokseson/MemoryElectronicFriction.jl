@@ -26,19 +26,22 @@ end
 # ------------------------------------------------------------------------------
 # Trajectory loading. NQCDynamics' FileReduction lays each .h5 file out as
 #   trajectory_<i>/Time            (Nt_i,)
-#                 /OutputPosition  (D, 1, Nt_i)
-#                 /OutputVelocity  (D, 1, Nt_i)
+#                 /OutputPosition  (ndofs, natoms, Nt_i)
+#                 /OutputVelocity  (ndofs, natoms, Nt_i)
 #                 /Output{Kinetic,Potential,Total}Energy (Nt_i,)
-# D = 1 for ErpenbeckThoss (1-DOF), D = 2 for NOAu (bond, z). Trajectory
+# D = ndofs·natoms: 1 for ErpenbeckThoss (1-DOF), 2 for NOAu (bond, z).
+# NOAu files from the single-mass run are (2, 1, Nt); with the diag(μ, M)
+# mass matrix (r and z as two 1-DOF atoms) they are (1, 2, Nt). Both
+# flatten column-major to the same D × Nt with row 1 = r, row 2 = z. Trajectory
 # lengths Nt_i differ when the TerminatingCallback fires at different times,
 # so we return a Vector (one element per trajectory), not a rectangular array.
 #
 # Each element is a NamedTuple keyed by `:t` plus whatever outputs the caller
 # requested via the `outputs` keyword — defaults to position+velocity, but you
 # can pass e.g. `outputs = (:OutputPosition, :OutputKineticEnergy)` to read
-# only those, or add energies. The singleton "atoms" axis is squeezed for 3D
-# arrays (so position/velocity come back as D × Nt) and 1D arrays (energies)
-# pass through unchanged.
+# only those, or add energies. 3D arrays are flattened over (ndofs, natoms)
+# (so position/velocity come back as D × Nt) and 1D arrays (energies) pass
+# through unchanged.
 # ------------------------------------------------------------------------------
 
 const _DEFAULT_OUTPUTS = (:OutputPosition, :OutputVelocity)
@@ -47,7 +50,7 @@ _traj_index(name::AbstractString) = parse(Int, last(split(name, '_')))
 
 function _read_field(g, name::AbstractString)
     a = read(g[name])
-    return ndims(a) == 3 ? dropdims(a; dims = 2) : a
+    return ndims(a) == 3 ? reshape(a, :, size(a, 3)) : a
 end
 
 function _read_trajectory(g, outputs)

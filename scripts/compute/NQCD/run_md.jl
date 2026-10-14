@@ -1,11 +1,7 @@
 using DrWatson
-@quickactivate "HokseonReproduce"
+@quickactivate "MemoryElectronicFriction"
 
-if !isdefined(Main, :HokseonReproduce)
-    include(srcdir("HokseonReproduce.jl"))
-    using .HokseonReproduce
-end
-
+using MemoryElectronicFriction
 using NQCModels
 using NQCDynamics
 using NQCDynamics.InitialConditions: QuantisedDiatomic
@@ -63,11 +59,34 @@ function NQCModels.potential(m::FrozenHeightBO, r::AbstractMatrix)
     return NQCModels.potential(m.model2d, reshape([r[1, 1], m.z], 2, 1))
 end
 
+# NQCDynamics gives every DOF of an atom that atom's mass, so POGO's 2-DOF ×
+# 1-atom layout puts μ on both r and z. Presenting (r, z) as two 1-DOF "atoms"
+# (positions 1×2) lets atom 1 = bond length r carry the reduced mass μ and
+# atom 2 = centre-of-mass height z carry the total mass M = m_N + m_O,
+# i.e. mass matrix diag(μ, M).
+struct RZAsAtoms{M<:NQCModels.ClassicalModels.ClassicalModel} <: NQCModels.ClassicalModels.ClassicalModel
+    model::M
+end
+
+NQCModels.ndofs(::RZAsAtoms) = 1
+
+function NQCModels.potential(m::RZAsAtoms, R::AbstractMatrix)
+    return NQCModels.potential(m.model, reshape(R, 2, 1))
+end
+
+function NQCModels.derivative!(m::RZAsAtoms, D::AbstractMatrix, R::AbstractMatrix)
+    D2 = zeros(2, 1)
+    NQCModels.derivative!(m.model, D2, reshape(R, 2, 1))
+    D[1, 1], D[1, 2] = D2[1, 1], D2[2, 1]
+    return D
+end
+
 function run_BO_dynamics(bo_model, atoms, dist, full_data_path;
                          tspan        = (0.0, austrip(500u"fs")),
                          dt           = austrip(0.01u"fs"),
                          terminate    = (u, t, _) -> false,
-                         trajectories = 1)
+                         trajectories = 1,
+                         selection    = nothing)
 
     sim = Simulation{Classical}(atoms, bo_model)
 
@@ -75,7 +94,7 @@ function run_BO_dynamics(bo_model, atoms, dist, full_data_path;
         callback = DynamicsUtils.TerminatingCallback(terminate),
         output = (OutputPosition, OutputVelocity,
                   OutputKineticEnergy, OutputPotentialEnergy, OutputTotalEnergy),
-        trajectories,
+        trajectories, selection,
         reduction    = FileReduction(full_data_path))
 end
 
@@ -103,35 +122,37 @@ function run_erpenbeck_thoss(params, full_data_path)
                            dt = austrip(dt), terminate)
 end
 
-# Translation is deterministic: fixed z0, fixed ż chosen so NQCDynamics'
-# KE(z-DOF) = 0.5 * atoms.masses[1] * ż² matches `translational_kinetic`.
-# (POGO is a 1-atom/2-DOF model so atoms.masses has length 1 and the same
-# mass backs both the bond and the z-DOF in KE bookkeeping.)
+# Translation is deterministic: fixed z0, fixed ż chosen so the centre-of-mass
+# KE 0.5 * M * ż² (M = atoms.masses[2]) matches `translational_kinetic`.
+# Positions/velocities are 1×2 [r z] for RZAsAtoms.
 # The bond DOF is either frozen at r0[1] with zero radial velocity
 # (vibrational_state === nothing) or EBK-sampled at quantum number ν
-# (Integer). Seed keyed off (ν, E_trans, N) so equivalent configs reproduce.
+# (Integer) with the reduced mass μ = atoms.masses[1]. `bo_model` is the
+# plain 2×1 (r, z) model, as FrozenHeightBO expects.
+# Seed keyed off (ν, E_trans, N) so equivalent configs reproduce.
 function noau_initial_distribution(bo_model, atoms, params; trajectories=1)
     @unpack r0, translational_kinetic, vibrational_state = params
 
     r_bond0 = austrip(r0[1])
     z0      = austrip(r0[2])
-    μ_bond  = atoms.masses[1]        # bond reduced mass; also drives z-DOF KE
-    ż       = -sqrt(2 * austrip(translational_kinetic) / μ_bond)
+    μ_bond  = atoms.masses[1]        # bond reduced mass
+    M_tot   = atoms.masses[2]        # total mass, carried by the centre-of-mass height z
+    ż       = -sqrt(2 * austrip(translational_kinetic) / M_tot)
 
     if vibrational_state === nothing
-        v_samples = [reshape([0.0, ż],      2, 1) for _ in 1:trajectories]
-        r_samples = [reshape([r_bond0, z0], 2, 1) for _ in 1:trajectories]
+        v_samples = [[0.0     ż ] for _ in 1:trajectories]
+        r_samples = [[r_bond0 z0] for _ in 1:trajectories]
     else
         ν = Int(vibrational_state)
         Random.seed!(hash((ν, austrip(translational_kinetic), trajectories)))
         model1d = FrozenHeightBO(bo_model, z0)
         bonds, bond_vs = QuantisedDiatomic.generate_1D_vibrations(
             model1d, μ_bond, ν; samples=trajectories)
-        v_samples = [reshape([bond_vs[k], ż], 2, 1) for k in 1:trajectories]
-        r_samples = [reshape([bonds[k],   z0], 2, 1) for k in 1:trajectories]
+        v_samples = [[bond_vs[k] ż ] for k in 1:trajectories]
+        r_samples = [[bonds[k]   z0] for k in 1:trajectories]
     end
 
-    return DynamicalDistribution(v_samples, r_samples, (2, 1))
+    return DynamicalDistribution(v_samples, r_samples, (1, 2))
 end
 
 function run_NOAu(params, full_data_path)
@@ -139,7 +160,7 @@ function run_NOAu(params, full_data_path)
             termination_min_time, termination_coord_idx, termination_threshold,
             trajectories = params
 
-    atoms         = Atoms(mass)
+    atoms         = Atoms(austrip.(mass))   # [μ, M]
     quantum_model = POGOModel()
     bo_model      = BOAdiabaticModel(quantum_model, state)
     dist          = noau_initial_distribution(bo_model, atoms, params; trajectories)
@@ -147,16 +168,18 @@ function run_NOAu(params, full_data_path)
     t_min  = austrip(termination_min_time)
     thresh = austrip(termination_threshold)
     terminate = (u, t, _) -> t > t_min &&
-                             DynamicsUtils.get_positions(u)[termination_coord_idx, 1] > thresh
+                             DynamicsUtils.get_positions(u)[1, termination_coord_idx] > thresh
 
-    return run_BO_dynamics(bo_model, atoms, dist, full_data_path;
+    # selection = 1:N runs each sampled initial condition exactly once; the
+    # NQCDynamics default (nothing) draws from `dist` with replacement.
+    return run_BO_dynamics(RZAsAtoms(bo_model), atoms, dist, full_data_path;
                            tspan = (0.0, austrip(tmax)),
-                           dt = austrip(dt), terminate, trajectories)
+                           dt = austrip(dt), terminate, trajectories,
+                           selection = 1:trajectories)
 end
 
-# Save paths (`dict_to_data_savename`) and the trajectory loader are now
-# part of HokseonReproduce.IO and re-exported from the top-level module.
-# No local include needed — they are available via `using HokseonReproduce`.
+# Save paths (`dict_to_data_savename`) and the trajectory loader are part of
+# MemoryElectronicFriction.IO and re-exported from the top-level module.
 
 # -----------------------------------------------------------------------------
 # Parameter sweeps
@@ -177,12 +200,12 @@ all_params_et = Dict{String, Any}(
 params_list_et = dict_list(all_params_et)
 
 all_params_NOAu = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+    "mass"                  => [[14.007 * 15.999 / (14.007 + 15.999), 14.007 + 15.999] .* u"u"],   # [μ_NO, M_NO]: r carries μ, z carries M
 #    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
     "translational_kinetic" => collect(0.2:0.1:1.0) .* u"eV",
     "state"                 => [1],
-    "tmax"                  => [500.0u"fs"],
+    "tmax"                  => [1000.0u"fs"],
     "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],                       # check z

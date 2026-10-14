@@ -54,12 +54,12 @@ end
 # ---------------------------------------------------------------------------
 
 all_params_NOAu = Dict{String, Any}(
-    "mass"                  => [(14.007 * 15.999 / (14.007 + 15.999)) * u"u"],   # μ_NO — POGO is 1-atom
+    "mass"                  => [[14.007 * 15.999 / (14.007 + 15.999), 14.007 + 15.999] .* u"u"],   # [μ_NO, M_NO]: r carries μ, z carries M
 #    "Γ"                     => [1.5u"eV"], ## constant 1.5 eV
     "r0"                    => [[1.15u"Å", 5.0u"Å"]],    # (r, z); r0[1] is the frozen bond length when vibrational_state=nothing
     "translational_kinetic" => CLI_TK === nothing ? [4.0u"eV"] : [CLI_TK * u"eV"],
     "state"                 => [1],
-    "tmax"                  => [500.0u"fs"],
+    "tmax"                  => [1000.0u"fs"],
     "dt"                    => [0.25u"fs"],
     "termination_min_time"  => [10.0u"fs"],
     "termination_coord_idx" => [2],                       # check z
