@@ -142,8 +142,25 @@ function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
                               stride=stride, parallel=parallel,
                               kernel_average=kernel_average)
             h5open(f -> (f["trajectory_$i"] = ΔE), partial_path, "cw")
+
+            # Full GC on the master and every worker after each trajectory. Each
+            # Julia process sizes its heap against the whole node's memory, so 64
+            # workers on one node let their garbage pile up until the node runs
+            # out (ARCHER2 array 15625142: 8 tasks oom-killed after 9.7–15.4 h).
+            # A full collection per trajectory keeps each heap near its live size;
+            # max_worker_rss_GB (peak RSS of the largest worker) should stay flat.
+            max_worker_rss_GB = if parallel
+                GC.gc()
+                @sync for w in workers()
+                    @async remotecall_wait(GC.gc, w)
+                end
+                round(maximum(asyncmap(w -> remotecall_fetch(Sys.maxrss, w), workers())) / 2^30; digits = 2)
+            else
+                nothing
+            end
+
             elapsed = time() - t0
-            @info "ΔE done" trajectory=i progress="$(ntraj - length(todo) + n)/$ntraj" ΔE_eV=join(round.(ustrip.(ΔE .* auconvert(u"eV", 1)); sigdigits = 5), ", ") elapsed_min=round(elapsed / 60; digits = 1) eta_min=round(elapsed / n * (length(todo) - n) / 60; digits = 1) T_K stride
+            @info "ΔE done" trajectory=i progress="$(ntraj - length(todo) + n)/$ntraj" ΔE_eV=join(round.(ustrip.(ΔE .* auconvert(u"eV", 1)); sigdigits = 5), ", ") elapsed_min=round(elapsed / 60; digits = 1) eta_min=round(elapsed / n * (length(todo) - n) / 60; digits = 1) max_worker_rss_GB T_K stride
         end
 
         ΔE_au_mat = h5open(partial_path, "r") do f
