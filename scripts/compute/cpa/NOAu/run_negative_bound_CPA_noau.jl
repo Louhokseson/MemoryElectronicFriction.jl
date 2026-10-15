@@ -15,6 +15,9 @@
 # mirrors that script, so the same options find the same a(q) file:
 #   --vib <int>[,<int>...] --translational_kinetic <float> --temperature <int>
 #   --stride <int> --ntraj <int> --domega <float, eV> --omega_max <float, eV>
+#   --tag <name>   read a(q) from data/sims/friction/NOAu/negative_<name> and
+#                  write to data/sims/cpa/NOAu/negative_bound_<name>
+#                  (e.g. --tag old_engine for the pre-fix a(q) results)
 # MD files whose a(q) file does not exist yet are skipped.
 #
 # Output: data/sims/cpa/NOAu/negative_bound/<savename>.h5, same layout as the
@@ -45,7 +48,8 @@ include("../../friction/NOAu/NegativeEigenvalue.jl")
 # ---------------------------------------------------------------------------
 
 let i = 1, _vib = nothing, _temp = nothing, _tk = nothing,
-    _stride = nothing, _ntraj = nothing, _domega = nothing, _omega_max = nothing
+    _stride = nothing, _ntraj = nothing, _domega = nothing, _omega_max = nothing,
+    _tag = nothing
     while i <= length(ARGS)
         if ARGS[i] == "--vib" && i < length(ARGS)
             _vib    = parse.(Int, split(ARGS[i+1], ',')); i += 2   # e.g. 16 or 0,3
@@ -61,6 +65,8 @@ let i = 1, _vib = nothing, _temp = nothing, _tk = nothing,
             _domega = parse(Float64, ARGS[i+1]); i += 2
         elseif ARGS[i] == "--omega_max" && i < length(ARGS)
             _omega_max = parse(Float64, ARGS[i+1]); i += 2
+        elseif ARGS[i] == "--tag" && i < length(ARGS)
+            _tag    = ARGS[i+1]; i += 2
         else
             i += 1
         end
@@ -72,6 +78,7 @@ let i = 1, _vib = nothing, _temp = nothing, _tk = nothing,
     global const CLI_NTRAJ  = _ntraj
     global const CLI_DOMEGA = _domega
     global const CLI_OMEGA_MAX = _omega_max
+    global const CLI_TAG    = _tag
 end
 
 # ---------------------------------------------------------------------------
@@ -110,8 +117,10 @@ const NEG_config_noau = Dict{String, Any}(
     "stride"       => CLI_STRIDE === nothing ? 1 : CLI_STRIDE,
 )
 CLI_NTRAJ === nothing || (NEG_config_noau["ntraj"] = CLI_NTRAJ)
+CLI_TAG   === nothing || (NEG_config_noau["folder"] = "negative_$(CLI_TAG)")
 
-const CPA_config_noau = merge(NEG_config_noau, Dict{String, Any}("variant" => "negative_bound"))
+const CPA_config_noau = merge(NEG_config_noau, Dict{String, Any}(
+    "variant" => CLI_TAG === nothing ? "negative_bound" : "negative_bound_$(CLI_TAG)"))
 
 # 300 K memory / Markovian CPA results, for the summary table only.
 const REFERENCE_configs = [
