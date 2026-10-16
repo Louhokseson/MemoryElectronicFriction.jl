@@ -28,17 +28,24 @@ include("../DeltaE.jl")
 
 # ---------------------------------------------------------------------------
 # CLI argument parsing — accepts --vib <int>, --temperature <int>,
-# --translational_kinetic <float, eV>, --ntraj <int> and --stride <int>.
+# --translational_kinetic <float, eV>, --kernel_average <name>, --ntraj <int>
+# and --stride <int>.
+# --kernel_average (arithmetic | geometric | endpoint) is required whenever
+# any argument is given, so a batch job always states which scheme it runs
+# (Julia reads this file when the job starts, not when it is submitted).
 # --ntraj N runs only the first N trajectories of each MD file and adds
 # `ntraj=N` to the output name, so a quick test never takes the full run's
 # filename; --stride (default 1) is part of the name too. Keep stride·dt well
 # below the ~18 fs NO vibration (stride 4 → 1 fs); stride ≳ 30 aliases it and
 # ΔE is meaningless. Quick test:
-#   --vib 16 --translational_kinetic 1.0 --temperature 300 --ntraj 2 --stride 4
-# Falls back to full sweep when run interactively (no args).
+#   --vib 16 --translational_kinetic 1.0 --temperature 300 --kernel_average arithmetic --ntraj 2 --stride 4
+# Falls back to full sweep (kernel_average = arithmetic) when run
+# interactively (no args).
 # ---------------------------------------------------------------------------
 
-let i = 1, _vib = nothing, _temp = nothing, _tk = nothing, _ntraj = nothing, _stride = nothing
+const KERNEL_AVERAGES = (:arithmetic, :geometric, :endpoint)
+
+let i = 1, _vib = nothing, _temp = nothing, _tk = nothing, _ka = nothing, _ntraj = nothing, _stride = nothing
     while i <= length(ARGS)
         if ARGS[i] == "--vib" && i < length(ARGS)
             _vib  = parse(Int, ARGS[i+1]); i += 2
@@ -46,6 +53,8 @@ let i = 1, _vib = nothing, _temp = nothing, _tk = nothing, _ntraj = nothing, _st
             _temp = parse(Int, ARGS[i+1]); i += 2
         elseif ARGS[i] == "--translational_kinetic" && i < length(ARGS)
             _tk   = parse(Float64, ARGS[i+1]); i += 2
+        elseif ARGS[i] == "--kernel_average" && i < length(ARGS)
+            _ka   = Symbol(ARGS[i+1]); i += 2
         elseif ARGS[i] == "--ntraj" && i < length(ARGS)
             _ntraj = parse(Int, ARGS[i+1]); i += 2
         elseif ARGS[i] == "--stride" && i < length(ARGS)
@@ -54,9 +63,16 @@ let i = 1, _vib = nothing, _temp = nothing, _tk = nothing, _ntraj = nothing, _st
             i += 1
         end
     end
+    if _ka === nothing && !isempty(ARGS)
+        error("--kernel_average is required: one of $(join(KERNEL_AVERAGES, ", "))")
+    end
+    if _ka !== nothing && _ka ∉ KERNEL_AVERAGES
+        error("--kernel_average $(_ka) is not one of $(join(KERNEL_AVERAGES, ", "))")
+    end
     global const CLI_VIB    = _vib
     global const CLI_TEMP   = _temp
     global const CLI_TK     = _tk
+    global const CLI_KA     = _ka
     global const CLI_NTRAJ  = _ntraj
     global const CLI_STRIDE = _stride
 end
@@ -94,7 +110,7 @@ const CPA_config_noau = Dict{String, Any}(
     "ω"              => DEFAULT_ω_GRID_eV,
     "stride"         => CLI_STRIDE === nothing ? 1 : CLI_STRIDE,
     "parallel"       => nworkers() > 1,
-    "kernel_average" => :arithmetic,                        # :arithmetic | :geometric
+    "kernel_average" => CLI_KA === nothing ? :arithmetic : CLI_KA,   # :arithmetic | :geometric | :endpoint
 )
 CLI_NTRAJ === nothing || (CPA_config_noau["ntraj"] = CLI_NTRAJ)
 
@@ -133,7 +149,7 @@ function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
         # `DeltaE_au`) is written only once all ntraj are done.
         done = isfile(partial_path) ? h5open(f -> Set(keys(f)), partial_path, "r") : Set{String}()
         todo = [i for i in 1:ntraj if "trajectory_$i" ∉ done]
-        @info "Memory CPA" savingname n_todo=length(todo) n_done=ntraj - length(todo) partial_path nworkers=nworkers()
+        @info "Memory CPA" kernel_average T_K stride savingname n_todo=length(todo) n_done=ntraj - length(todo) partial_path nworkers=nworkers()
 
         t0 = time()
         for (n, i) in enumerate(todo)
@@ -160,7 +176,7 @@ function run_CPA_delta_energy(CPA_config, params_list, trajs_list)
             end
 
             elapsed = time() - t0
-            @info "ΔE done" trajectory=i progress="$(ntraj - length(todo) + n)/$ntraj" ΔE_eV=join(round.(ustrip.(ΔE .* auconvert(u"eV", 1)); sigdigits = 5), ", ") elapsed_min=round(elapsed / 60; digits = 1) eta_min=round(elapsed / n * (length(todo) - n) / 60; digits = 1) max_worker_rss_GB T_K stride
+            @info "ΔE done" trajectory=i progress="$(ntraj - length(todo) + n)/$ntraj" ΔE_eV=join(round.(ustrip.(ΔE .* auconvert(u"eV", 1)); sigdigits = 5), ", ") elapsed_min=round(elapsed / 60; digits = 1) eta_min=round(elapsed / n * (length(todo) - n) / 60; digits = 1) max_worker_rss_GB kernel_average T_K stride
         end
 
         ΔE_au_mat = h5open(partial_path, "r") do f
